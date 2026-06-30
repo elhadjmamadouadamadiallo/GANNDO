@@ -4,104 +4,67 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0A1430">
-<title>GANNDO — L'instruit, à votre écoute</title>
+<title>GANNDO IA — L'instruit, à votre écoute</title>
 
 <!-- PWA : installation sur l'écran d'accueil -->
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="GANNDO">
+<meta name="apple-mobile-web-app-title" content="GANNDO IA">
 
-<!-- Police Lora (le serif de la marque, le même que le logo) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&display=swap" rel="stylesheet">
 
 <style>
-  /* ===== Palette de la marque ===== */
   :root{
-    --encre:#0A1430;        /* fond profond, le bleu nuit du logo */
-    --encre-2:#0E1B3A;
-    --ardoise:#16264F;      /* bulles de GANNDO, surfaces */
-    --ardoise-bord:#28406f;
-    --or:#E0B24E;
-    --or-clair:#F4DA8E;
-    --or-fonce:#C8941F;
-    --creme:#ECE6D6;        /* texte principal sur fond sombre */
-    --creme-doux:#AEB4C6;   /* texte secondaire */
-    --user-txt:#1A1206;     /* texte sur la bulle dorée */
+    --encre:#0A1430; --encre-2:#0E1B3A; --ardoise:#16264F; --ardoise-bord:#28406f;
+    --or:#E0B24E; --or-clair:#F4DA8E; --or-fonce:#C8941F;
+    --creme:#ECE6D6; --creme-doux:#AEB4C6; --user-txt:#1A1206;
   }
-
   *{box-sizing:border-box; margin:0; padding:0;}
   html,body{height:100%;}
+  [hidden]{display:none !important;}
   body{
-    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-    color:var(--creme);
-    background:
-      radial-gradient(1200px 600px at 50% -10%, #15244d 0%, transparent 60%),
-      linear-gradient(180deg, var(--encre-2) 0%, var(--encre) 100%);
-    background-attachment:fixed;
-    display:flex; flex-direction:column;
-    height:100dvh;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--creme);
+    background:radial-gradient(1200px 600px at 50% -10%, #15244d 0%, transparent 60%),
+               linear-gradient(180deg, var(--encre-2) 0%, var(--encre) 100%);
+    background-attachment:fixed; display:flex; flex-direction:column; height:100dvh;
   }
 
   /* ===== En-tête ===== */
   header{
     display:flex; align-items:center; gap:12px;
-    padding:12px 16px calc(12px) 16px;
-    padding-top:max(12px, env(safe-area-inset-top));
-    background:rgba(10,20,48,.72);
-    backdrop-filter:blur(10px);
-    border-bottom:1px solid rgba(224,178,78,.35);
-    position:sticky; top:0; z-index:5;
+    padding:12px 16px; padding-top:max(12px, env(safe-area-inset-top));
+    background:rgba(10,20,48,.72); backdrop-filter:blur(10px);
+    border-bottom:1px solid rgba(224,178,78,.35); position:sticky; top:0; z-index:5;
   }
-  .badge{
-    width:40px; height:40px; flex:none; border-radius:11px;
-    border:1px solid rgba(224,178,78,.45);
-    overflow:hidden;
-    box-shadow:0 2px 10px rgba(0,0,0,.35);
-  }
+  .badge{width:40px; height:40px; flex:none; border-radius:11px;
+    border:1px solid rgba(224,178,78,.45); overflow:hidden; box-shadow:0 2px 10px rgba(0,0,0,.35);}
   .badge img{width:116%; height:116%; margin:-8%; display:block;}
   .titre{display:flex; flex-direction:column; line-height:1.1;}
-  .titre b{
-    font-family:"Lora",serif; font-weight:700; letter-spacing:.06em;
-    font-size:20px; color:var(--or-clair);
-  }
+  .titre b{font-family:"Lora",serif; font-weight:700; letter-spacing:.06em; font-size:20px; color:var(--or-clair);}
   .titre span{font-size:12px; color:var(--creme-doux); margin-top:2px;}
+  .icone-entete{margin-left:auto; width:42px; height:42px; border:none; background:none;
+    display:grid; place-items:center; cursor:pointer; border-radius:10px;}
+  .icone-entete svg{stroke:var(--or-clair);}
+  .icone-entete:active{background:rgba(255,255,255,.06);}
 
   /* ===== Fil de conversation ===== */
-  #chat{
-    flex:1; overflow-y:auto;
-    padding:20px 14px 8px;
-    display:flex; flex-direction:column; gap:14px;
-    -webkit-overflow-scrolling:touch;
-  }
-  .msg{max-width:84%; display:flex; flex-direction:column; gap:4px;
-       animation:apparait .22s ease both;}
+  #chat{flex:1; overflow-y:auto; padding:20px 14px 8px;
+    display:flex; flex-direction:column; gap:14px; -webkit-overflow-scrolling:touch;}
+  .msg{max-width:84%; display:flex; flex-direction:column; gap:4px; animation:apparait .22s ease both;}
   .msg .qui{font-size:11px; letter-spacing:.04em; color:var(--or); padding:0 4px;}
-  .bulle{
-    padding:11px 14px; border-radius:16px; font-size:15.5px; line-height:1.5;
-    word-wrap:break-word;
-  }
-  /* GANNDO, à gauche */
+  .bulle{padding:11px 14px; border-radius:16px; font-size:15.5px; line-height:1.5; word-wrap:break-word;}
   .de-ganndo{align-self:flex-start;}
-  .de-ganndo .bulle{
-    background:var(--ardoise);
-    border:1px solid var(--ardoise-bord);
-    border-top-left-radius:5px;
-    color:var(--creme);
-  }
-  /* Utilisateur, à droite */
+  .de-ganndo .bulle{background:var(--ardoise); border:1px solid var(--ardoise-bord);
+    border-top-left-radius:5px; color:var(--creme);}
   .de-moi{align-self:flex-end; align-items:flex-end;}
-  .de-moi .bulle{
-    background:linear-gradient(180deg,var(--or-clair),var(--or-fonce));
-    border-top-right-radius:5px;
-    color:var(--user-txt); font-weight:500;
-    white-space:pre-wrap;
-  }
+  .de-moi .bulle{background:linear-gradient(180deg,var(--or-clair),var(--or-fonce));
+    border-top-right-radius:5px; color:var(--user-txt); font-weight:500; white-space:pre-wrap;}
 
-  /* ===== Mise en forme des réponses de GANNDO (Markdown rendu joliment) ===== */
+  /* mise en forme des réponses */
   .de-ganndo .bulle p{margin:.5em 0;}
   .de-ganndo .bulle h3{font-size:16.5px; font-weight:700; color:var(--or-clair); margin:.7em 0 .35em;}
   .de-ganndo .bulle h4{font-size:15px; font-weight:700; color:var(--or); margin:.6em 0 .3em;}
@@ -110,121 +73,200 @@
   .de-ganndo .bulle ul,.de-ganndo .bulle ol{margin:.4em 0; padding-left:1.25em;}
   .de-ganndo .bulle li{margin:.2em 0;}
   .de-ganndo .bulle li::marker{color:var(--or);}
-  .de-ganndo .bulle code{background:rgba(0,0,0,.28); color:var(--or-clair);
-        padding:1px 5px; border-radius:5px;
-        font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.92em;}
+  .de-ganndo .bulle code{background:rgba(0,0,0,.28); color:var(--or-clair); padding:1px 5px;
+    border-radius:5px; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.92em;}
   .de-ganndo .bulle pre{background:#0A1430; border:1px solid var(--ardoise-bord);
-        border-radius:10px; padding:10px 12px; overflow-x:auto; margin:.5em 0;}
-  .de-ganndo .bulle pre code{background:none; color:var(--creme); padding:0;
-        font-size:.88em; line-height:1.45;}
+    border-radius:10px; padding:10px 12px; overflow-x:auto; margin:.5em 0;}
+  .de-ganndo .bulle pre code{background:none; color:var(--creme); padding:0; font-size:.88em; line-height:1.45;}
   .de-ganndo .bulle hr{border:none; height:1px; background:rgba(224,178,78,.3); margin:.7em 0;}
   .de-ganndo .bulle a{color:var(--or-clair); text-decoration:underline;}
-  .de-ganndo .bulle blockquote{margin:.5em 0; padding:7px 13px;
-        border-left:3px solid var(--or); background:rgba(224,178,78,.09);
-        border-radius:0 8px 8px 0; color:var(--creme-doux);}
+  .de-ganndo .bulle blockquote{margin:.5em 0; padding:7px 13px; border-left:3px solid var(--or);
+    background:rgba(224,178,78,.09); border-radius:0 8px 8px 0; color:var(--creme-doux);}
   .de-ganndo .bulle > :first-child{margin-top:0;}
   .de-ganndo .bulle > :last-child{margin-bottom:0;}
 
-  /* Indicateur « en train d'écrire » */
   .points{display:inline-flex; gap:5px; padding:4px 2px;}
-  .points i{width:7px; height:7px; border-radius:50%; background:var(--creme-doux);
-            animation:respire 1.2s infinite ease-in-out;}
-  .points i:nth-child(2){animation-delay:.15s;}
-  .points i:nth-child(3){animation-delay:.3s;}
+  .points i{width:7px; height:7px; border-radius:50%; background:var(--creme-doux); animation:respire 1.2s infinite ease-in-out;}
+  .points i:nth-child(2){animation-delay:.15s;} .points i:nth-child(3){animation-delay:.3s;}
 
   /* ===== Barre de saisie ===== */
-  #composer{
-    display:flex; align-items:flex-end; gap:8px;
-    padding:10px 12px;
+  #composer{display:flex; align-items:flex-end; gap:8px; padding:10px 12px;
     padding-bottom:max(10px, env(safe-area-inset-bottom));
-    background:var(--encre-2);
-    border-top:1px solid rgba(224,178,78,.30);
-  }
-  #champ{
-    flex:1; resize:none; max-height:140px;
-    background:var(--ardoise); color:var(--creme);
-    border:1px solid var(--ardoise-bord); border-radius:18px;
-    padding:11px 14px; font:inherit; font-size:15.5px; line-height:1.4;
-    outline:none;
-  }
-  #champ::placeholder{color:#7e879e;}
-  #champ:focus{border-color:var(--or);}
-  .rond{
-    flex:none; width:44px; height:44px; border-radius:50%;
-    display:grid; place-items:center; cursor:pointer;
-    border:none; background:none;
-  }
-  #micro{border:1px solid var(--or); }
-  #micro svg{stroke:var(--or);}
+    background:var(--encre-2); border-top:1px solid rgba(224,178,78,.30);}
+  #champ{flex:1; resize:none; max-height:140px; background:var(--ardoise); color:var(--creme);
+    border:1px solid var(--ardoise-bord); border-radius:18px; padding:11px 14px;
+    font:inherit; font-size:15.5px; line-height:1.4; outline:none;}
+  #champ::placeholder{color:#7e879e;} #champ:focus{border-color:var(--or);}
+  .rond{flex:none; width:44px; height:44px; border-radius:50%; display:grid; place-items:center; cursor:pointer; border:none; background:none;}
+  #micro{border:1px solid var(--or);} #micro svg{stroke:var(--or);}
   #envoyer{background:linear-gradient(180deg,var(--or-clair),var(--or-fonce));}
-  #envoyer svg{stroke:var(--user-txt);}
-  #envoyer:disabled{opacity:.4;}
+  #envoyer svg{stroke:var(--user-txt);} #envoyer:disabled{opacity:.4;}
 
-  /* ===== Animations ===== */
+  /* ===== Menu latéral (drawer) ===== */
+  .overlay{position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:20;}
+  .drawer{position:fixed; top:0; left:0; height:100dvh; width:84%; max-width:340px;
+    background:var(--encre-2); border-right:1px solid rgba(224,178,78,.25); z-index:30;
+    transform:translateX(-100%); transition:transform .25s ease; display:flex; flex-direction:column;
+    padding-top:env(safe-area-inset-top);}
+  .drawer.ouvert{transform:none;}
+  .drawer-haut{display:flex; align-items:center; justify-content:space-between;
+    padding:16px; border-bottom:1px solid rgba(224,178,78,.2);}
+  .drawer-titre{font-family:"Lora",serif; font-weight:700; color:var(--or-clair); font-size:18px;}
+  .btn-icone{border:none; background:none; cursor:pointer; width:36px; height:36px; display:grid; place-items:center;}
+  .btn-icone svg{stroke:var(--creme-doux);}
+  .btn-or{margin:14px 16px; padding:11px; border:none; border-radius:12px; cursor:pointer;
+    background:linear-gradient(180deg,var(--or-clair),var(--or-fonce)); color:var(--user-txt);
+    font:inherit; font-weight:700; font-size:15px; display:flex; align-items:center; justify-content:center; gap:8px;}
+  .btn-or svg{stroke:var(--user-txt);}
+  .liste-conv{flex:1; overflow-y:auto; padding:4px 10px;}
+  .liste-conv .vide{color:var(--creme-doux); font-size:14px; text-align:center; padding:24px 10px;}
+  .conv-item{display:flex; align-items:center; gap:2px; border-radius:10px; margin-bottom:2px;}
+  .conv-item.actif{background:rgba(224,178,78,.12);}
+  .conv-ouvrir{flex:1; text-align:left; border:none; background:none; color:var(--creme); font:inherit;
+    font-size:14.5px; padding:11px 10px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .conv-suppr{border:none; background:none; cursor:pointer; width:38px; height:38px; display:grid; place-items:center; flex:none;}
+  .conv-suppr svg{stroke:#cc7a6f;}
+  .btn-params{margin:10px 16px; padding:12px; border:1px solid var(--ardoise-bord); border-radius:12px;
+    background:var(--ardoise); color:var(--creme); font:inherit; font-size:15px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:8px;}
+  .btn-params svg{stroke:var(--or);}
+
+  /* ===== Écran Paramètres (profil) ===== */
+  .modal{position:fixed; inset:0; z-index:40; display:flex; flex-direction:column;
+    background:var(--encre); overflow-y:auto;}
+  .modal h2{font-family:"Lora",serif; color:var(--or-clair); font-size:20px; padding:16px;
+    border-bottom:1px solid rgba(224,178,78,.2); position:sticky; top:0; background:var(--encre);
+    padding-top:max(16px, env(safe-area-inset-top));}
+  .modal .intro{color:var(--creme-doux); font-size:13px; padding:14px 16px 0; line-height:1.45;}
+  .modal .corps{padding:6px 16px 16px; display:flex; flex-direction:column;}
+  .modal label{color:var(--or); font-size:13.5px; margin-top:16px; font-weight:600;}
+  .modal textarea{background:var(--ardoise); border:1px solid var(--ardoise-bord); border-radius:12px;
+    color:var(--creme); padding:10px 12px; margin-top:6px; font:inherit; font-size:15px;
+    resize:vertical; min-height:62px; outline:none;}
+  .modal textarea:focus{border-color:var(--or);}
+  .modal-actions{display:flex; gap:10px; padding:16px; padding-bottom:max(16px, env(safe-area-inset-bottom));
+    position:sticky; bottom:0; background:var(--encre); border-top:1px solid rgba(224,178,78,.15);}
+  .modal-actions button{flex:1; padding:12px; border-radius:12px; font:inherit; font-size:15px; cursor:pointer; font-weight:700;}
+  .btn-annuler{border:1px solid var(--ardoise-bord); background:none; color:var(--creme-doux);}
+  .btn-valider{border:none; background:linear-gradient(180deg,var(--or-clair),var(--or-fonce)); color:var(--user-txt);}
+
   @keyframes apparait{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
-  @keyframes respire{0%,80%,100%{opacity:.25; transform:translateY(0);}
-                     40%{opacity:1; transform:translateY(-3px);}}
-  @media (prefers-reduced-motion:reduce){
-    *{animation:none !important;}
-  }
+  @keyframes respire{0%,80%,100%{opacity:.25; transform:translateY(0);} 40%{opacity:1; transform:translateY(-3px);}}
+  @media (prefers-reduced-motion:reduce){*{animation:none !important; transition:none !important;}}
 </style>
 </head>
 
 <body>
   <header>
-    <div class="badge"><img src="icon-512.png" alt="GANNDO"></div>
-    <div class="titre">
-      <b>GANNDO</b>
-      <span>L'instruit, à votre écoute</span>
-    </div>
+    <div class="badge"><img src="icon-512.png" alt="GANNDO IA"></div>
+    <div class="titre"><b>GANNDO IA</b><span>L'instruit, à votre écoute</span></div>
+    <button id="btn-menu" class="icone-entete" aria-label="Menu">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+        <line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/>
+      </svg>
+    </button>
   </header>
 
   <main id="chat" aria-live="polite"></main>
 
   <footer id="composer">
     <button id="micro" class="rond" aria-label="Dicter (bientôt)">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round">
-        <rect x="9" y="3" width="6" height="11" rx="3"/>
-        <path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/>
       </svg>
     </button>
-    <textarea id="champ" rows="1" placeholder="Écrivez à GANNDO…"
-              aria-label="Votre message"></textarea>
+    <textarea id="champ" rows="1" placeholder="Écrivez à GANNDO IA…" aria-label="Votre message"></textarea>
     <button id="envoyer" class="rond" aria-label="Envoyer" disabled>
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 19V5"/><path d="M5 12l7-7 7 7"/>
       </svg>
     </button>
   </footer>
 
+  <!-- ===== Menu latéral ===== -->
+  <div id="overlay" class="overlay" hidden></div>
+  <aside id="drawer" class="drawer">
+    <div class="drawer-haut">
+      <span class="drawer-titre">Mes conversations</span>
+      <button id="btn-fermer-drawer" class="btn-icone" aria-label="Fermer">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <button id="btn-nouvelle" class="btn-or">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Nouvelle conversation
+    </button>
+    <div id="liste-conv" class="liste-conv"></div>
+    <button id="btn-params" class="btn-params">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+        <line x1="4" y1="8" x2="20" y2="8"/><circle cx="9" cy="8" r="2.3"/><line x1="4" y1="16" x2="20" y2="16"/><circle cx="15" cy="16" r="2.3"/>
+      </svg>
+      Paramètres
+    </button>
+  </aside>
+
+  <!-- ===== Écran Paramètres ===== -->
+  <div id="modal-params" class="modal" hidden>
+    <h2>Paramètres</h2>
+    <p class="intro">Ce que vous écrivez ici aide GANNDO à mieux vous comprendre et à adapter ses réponses. Tout reste sur votre appareil.</p>
+    <div class="corps">
+      <label for="p-desc">Qui êtes-vous ?</label>
+      <textarea id="p-desc" placeholder="Votre métier, votre parcours, ce qui vous définit…"></textarea>
+      <label for="p-attentes">Ce que vous attendez de GANNDO</label>
+      <textarea id="p-attentes" placeholder="Le ton, le type de réponses, ce qui vous est utile…"></textarea>
+      <label for="p-eviter">Ce que vous ne voulez pas</label>
+      <textarea id="p-eviter" placeholder="Les sujets, formulations ou attitudes à éviter…"></textarea>
+      <label for="p-soucis">Ce qui vous préoccupe en ce moment</label>
+      <textarea id="p-soucis" placeholder="Vos projets, vos défis, ce qui vous occupe l'esprit…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button id="btn-annuler-params" class="btn-annuler">Annuler</button>
+      <button id="btn-save-params" class="btn-valider">Enregistrer</button>
+    </div>
+  </div>
+
 <script>
   // ╔══════════════════════════════════════════════════════════════╗
-  // ║  À REMPLIR : les deux valeurs de VOTRE projet Supabase GANNDO  ║
-  // ║  (valeurs PUBLIQUES : elles ont le droit d'être ici)          ║
+  // ║  Valeurs publiques de votre projet Supabase GANNDO            ║
   // ╚══════════════════════════════════════════════════════════════╝
-  const SUPABASE_URL      = "https://vlxohhknywychdvynmjg.supabase.co";  // ← votre Project URL
-  const SUPABASE_ANON_KEY = "sb_publishable_2tETwcG7TnhN1_GlJyZzlQ_Y-INrUBz"; // ← clé anon (public)
-
-  // Adresse de l'Edge Function (ne pas modifier)
+  const SUPABASE_URL      = "https://vlxohhknywychdvynmjg.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_2tETwcG7TnhN1_GlJyZzlQ_Y-INrUBz";
   const FONCTION_URL = SUPABASE_URL + "/functions/v1/swift-endpoint";
 
-  // ===== Références aux éléments de la page =====
-  const chat    = document.getElementById('chat');
-  const champ   = document.getElementById('champ');
+  const MSG_ACCUEIL = "Bonjour. Je suis GANNDO IA, votre confident instruit. " +
+    "Posez-moi une question, ou confiez-moi ce qui vous occupe.";
+
+  // ===== Clés de stockage local =====
+  const K_CONV = 'ganndo_conversations', K_ACTIVE = 'ganndo_active', K_PROFIL = 'ganndo_profil';
+
+  // ===== État =====
+  let conversations = [];
+  let convCourante = null;
+  let profil = { description:'', attentes:'', eviter:'', soucis:'' };
+  let enCours = false;
+  const estTactile = window.matchMedia('(pointer: coarse)').matches;
+
+  // ===== Éléments =====
+  const chat = document.getElementById('chat');
+  const champ = document.getElementById('champ');
   const envoyer = document.getElementById('envoyer');
-  const micro   = document.getElementById('micro');
+  const micro = document.getElementById('micro');
+  const drawer = document.getElementById('drawer');
+  const overlay = document.getElementById('overlay');
+  const liste = document.getElementById('liste-conv');
+  const modalParams = document.getElementById('modal-params');
+  const pDesc = document.getElementById('p-desc');
+  const pAttentes = document.getElementById('p-attentes');
+  const pEviter = document.getElementById('p-eviter');
+  const pSoucis = document.getElementById('p-soucis');
 
-  // Mémoire de la conversation envoyée à Claude (commence toujours par l'utilisateur)
-  let historique = [];
-  let enCours = false;   // empêche les envois multiples pendant une réponse
+  // ===== Stockage local (avec garde-fous) =====
+  function lire(cle, defaut){ try{ const v = localStorage.getItem(cle); return v ? JSON.parse(v) : defaut; }catch(e){ return defaut; } }
+  function ecrire(cle, val){ try{ localStorage.setItem(cle, JSON.stringify(val)); }catch(e){ console.warn('Stockage :', e); } }
+  function sauverConv(){ ecrire(K_CONV, conversations); ecrire(K_ACTIVE, convCourante ? convCourante.id : null); }
 
-  // ===== Traducteur Markdown → HTML (pour afficher joliment, sans symboles) =====
-  function echapperHTML(s){
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-  // Mise en forme à l'intérieur d'une ligne (gras, italique, code, liens)
+  // ===== Traducteur Markdown → HTML =====
+  function echapperHTML(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function enligne(s){
     s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
     s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
@@ -237,18 +279,9 @@
     const lignes = echapperHTML(texte).split('\n');
     let html = '', dansCode = false, bufCode = [];
     let typeListe = null, bufListe = [], bufPara = [], bufCitation = [];
-
     const flushPara = () => { if (bufPara.length){ html += '<p>'+enligne(bufPara.join(' '))+'</p>'; bufPara=[]; } };
-    const flushListe = () => {
-      if (typeListe){
-        html += '<'+typeListe+'>'+bufListe.map(x => '<li>'+enligne(x)+'</li>').join('')+'</'+typeListe+'>';
-        bufListe=[]; typeListe=null;
-      }
-    };
-    const flushCitation = () => {
-      if (bufCitation.length){ html += '<blockquote>'+enligne(bufCitation.join(' '))+'</blockquote>'; bufCitation=[]; }
-    };
-
+    const flushListe = () => { if (typeListe){ html += '<'+typeListe+'>'+bufListe.map(x => '<li>'+enligne(x)+'</li>').join('')+'</'+typeListe+'>'; bufListe=[]; typeListe=null; } };
+    const flushCitation = () => { if (bufCitation.length){ html += '<blockquote>'+enligne(bufCitation.join(' '))+'</blockquote>'; bufCitation=[]; } };
     for (const ligne of lignes){
       if (/^```/.test(ligne.trim())){
         if (dansCode){ html += '<pre><code>'+bufCode.join('\n')+'</code></pre>'; bufCode=[]; dansCode=false; }
@@ -256,155 +289,175 @@
         continue;
       }
       if (dansCode){ bufCode.push(ligne); continue; }
-
       const t = ligne.trim();
       if (t === ''){ flushPara(); flushListe(); flushCitation(); continue; }
       if (/^(---+|\*\*\*+|___+)$/.test(t)){ flushPara(); flushListe(); flushCitation(); html += '<hr>'; continue; }
-
       let m;
-      // Citation : le « > » a été transformé en « &gt; » par l'échappement
-      if ((m = t.match(/^&gt;\s?(.*)$/))){
-        flushPara(); flushListe(); bufCitation.push(m[1]);
-      } else if ((m = t.match(/^(#{1,6})\s+(.*)$/))){
-        flushPara(); flushListe(); flushCitation();
-        html += (m[1].length <= 2 ? '<h3>' : '<h4>') + enligne(m[2]) + (m[1].length <= 2 ? '</h3>' : '</h4>');
-      } else if ((m = t.match(/^[-*+]\s+(.*)$/))){
-        flushPara(); flushCitation(); if (typeListe !== 'ul') flushListe(); typeListe='ul'; bufListe.push(m[1]);
-      } else if ((m = t.match(/^\d+[.)]\s+(.*)$/))){
-        flushPara(); flushCitation(); if (typeListe !== 'ol') flushListe(); typeListe='ol'; bufListe.push(m[1]);
-      } else {
-        if (typeListe) flushListe();
-        flushCitation();
-        bufPara.push(t);
-      }
+      if ((m = t.match(/^&gt;\s?(.*)$/))){ flushPara(); flushListe(); bufCitation.push(m[1]); }
+      else if ((m = t.match(/^(#{1,6})\s+(.*)$/))){ flushPara(); flushListe(); flushCitation();
+        html += (m[1].length <= 2 ? '<h3>' : '<h4>') + enligne(m[2]) + (m[1].length <= 2 ? '</h3>' : '</h4>'); }
+      else if ((m = t.match(/^[-*+]\s+(.*)$/))){ flushPara(); flushCitation(); if (typeListe !== 'ul') flushListe(); typeListe='ul'; bufListe.push(m[1]); }
+      else if ((m = t.match(/^\d+[.)]\s+(.*)$/))){ flushPara(); flushCitation(); if (typeListe !== 'ol') flushListe(); typeListe='ol'; bufListe.push(m[1]); }
+      else { if (typeListe) flushListe(); flushCitation(); bufPara.push(t); }
     }
     flushPara(); flushListe(); flushCitation();
     if (dansCode) html += '<pre><code>'+bufCode.join('\n')+'</code></pre>';
     return html;
   }
 
-  // ===== Ajouter une bulle au fil (purement visuel) =====
+  // ===== Affichage des bulles =====
   function ajouterMessage(texte, qui){
     const bloc = document.createElement('div');
     bloc.className = 'msg ' + (qui === 'moi' ? 'de-moi' : 'de-ganndo');
-
     if (qui === 'ganndo'){
-      const etiquette = document.createElement('div');
-      etiquette.className = 'qui';
-      etiquette.textContent = 'GANNDO';
-      bloc.appendChild(etiquette);
+      const e = document.createElement('div'); e.className = 'qui'; e.textContent = 'GANNDO IA'; bloc.appendChild(e);
     }
-    const bulle = document.createElement('div');
-    bulle.className = 'bulle';
-    if (qui === 'ganndo') bulle.innerHTML = rendreMarkdown(texte);
-    else bulle.textContent = texte;
-    bloc.appendChild(bulle);
-
-    chat.appendChild(bloc);
-    descendre();
-    return bulle;
+    const bulle = document.createElement('div'); bulle.className = 'bulle';
+    if (qui === 'ganndo') bulle.innerHTML = rendreMarkdown(texte); else bulle.textContent = texte;
+    bloc.appendChild(bulle); chat.appendChild(bloc); descendre(); return bulle;
   }
   function descendre(){ chat.scrollTop = chat.scrollHeight; }
-
-  // ===== Indicateur « en train d'écrire » =====
   function montrerEcriture(){
-    const bloc = document.createElement('div');
-    bloc.className = 'msg de-ganndo';
-    bloc.id = 'ecriture';
-    bloc.innerHTML = '<div class="qui">GANNDO</div>' +
-      '<div class="bulle"><span class="points"><i></i><i></i><i></i></span></div>';
-    chat.appendChild(bloc);
-    descendre();
+    const bloc = document.createElement('div'); bloc.className = 'msg de-ganndo'; bloc.id = 'ecriture';
+    bloc.innerHTML = '<div class="qui">GANNDO IA</div><div class="bulle"><span class="points"><i></i><i></i><i></i></span></div>';
+    chat.appendChild(bloc); descendre();
   }
-  function cacherEcriture(){
-    const e = document.getElementById('ecriture');
-    if (e) e.remove();
+  function cacherEcriture(){ const e = document.getElementById('ecriture'); if (e) e.remove(); }
+
+  // ===== Profil → texte pour GANNDO =====
+  function profilTexte(){
+    const p = profil, l = [];
+    if (p.description.trim()) l.push("Qui elle est : " + p.description.trim());
+    if (p.attentes.trim())    l.push("Ce qu'elle attend de toi : " + p.attentes.trim());
+    if (p.eviter.trim())      l.push("Ce qu'elle ne veut pas : " + p.eviter.trim());
+    if (p.soucis.trim())      l.push("Ce qui la préoccupe en ce moment : " + p.soucis.trim());
+    return l.join("\n");
   }
 
-  // ===== Envoyer un message à GANNDO (vraie réponse via l'Edge Function) =====
+  // ===== Conversations =====
+  function afficher(){
+    chat.innerHTML = '';
+    if (!convCourante.messages.length) ajouterMessage(MSG_ACCUEIL, 'ganndo');
+    else for (const m of convCourante.messages) ajouterMessage(m.content, m.role === 'user' ? 'moi' : 'ganndo');
+  }
+  function nouvelleConv(){
+    convCourante = { id: Date.now().toString(), titre:'', messages:[], modifie: Date.now() };
+    afficher(); rendreListe(); fermerDrawer();
+  }
+  function enregistrerConv(){
+    convCourante.modifie = Date.now();
+    const i = conversations.findIndex(c => c.id === convCourante.id);
+    if (i === -1) conversations.unshift(convCourante);
+    else { conversations.splice(i, 1); conversations.unshift(convCourante); }
+    sauverConv(); rendreListe();
+  }
+  function ouvrirConv(id){
+    const c = conversations.find(x => x.id === id); if (!c) return;
+    convCourante = c; afficher(); rendreListe(); sauverConv(); fermerDrawer();
+  }
+  function supprimerConv(id){
+    if (!confirm("Supprimer définitivement cette conversation ?")) return;
+    conversations = conversations.filter(c => c.id !== id);
+    if (convCourante && convCourante.id === id){
+      if (conversations.length){ convCourante = conversations[0]; afficher(); }
+      else nouvelleConv();
+    }
+    sauverConv(); rendreListe();
+  }
+  function rendreListe(){
+    liste.innerHTML = '';
+    if (!conversations.length){ liste.innerHTML = '<p class="vide">Aucune conversation enregistrée pour le moment.</p>'; return; }
+    for (const c of conversations){
+      const item = document.createElement('div');
+      item.className = 'conv-item' + (convCourante && c.id === convCourante.id ? ' actif' : '');
+      const ouvrir = document.createElement('button');
+      ouvrir.className = 'conv-ouvrir'; ouvrir.textContent = c.titre || 'Nouvelle conversation';
+      ouvrir.onclick = () => ouvrirConv(c.id);
+      const suppr = document.createElement('button');
+      suppr.className = 'conv-suppr'; suppr.setAttribute('aria-label', 'Supprimer');
+      suppr.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>';
+      suppr.onclick = (e) => { e.stopPropagation(); supprimerConv(c.id); };
+      item.appendChild(ouvrir); item.appendChild(suppr); liste.appendChild(item);
+    }
+  }
+
+  // ===== Menu latéral =====
+  function ouvrirDrawer(){ rendreListe(); drawer.classList.add('ouvert'); overlay.hidden = false; }
+  function fermerDrawer(){ drawer.classList.remove('ouvert'); overlay.hidden = true; }
+
+  // ===== Paramètres =====
+  function ouvrirParams(){
+    pDesc.value = profil.description; pAttentes.value = profil.attentes;
+    pEviter.value = profil.eviter; pSoucis.value = profil.soucis;
+    modalParams.hidden = false; fermerDrawer();
+  }
+  function fermerParams(){ modalParams.hidden = true; }
+  function enregistrerParams(){
+    profil = { description: pDesc.value, attentes: pAttentes.value, eviter: pEviter.value, soucis: pSoucis.value };
+    ecrire(K_PROFIL, profil); fermerParams();
+  }
+
+  // ===== Envoi d'un message =====
   async function soumettre(){
     const texte = champ.value.trim();
     if (!texte || enCours) return;
-
     ajouterMessage(texte, 'moi');
-    historique.push({ role: 'user', content: texte });
-    champ.value = '';
-    ajusterHauteur();
-    enCours = true;
-    envoyer.disabled = true;
-    montrerEcriture();
-
+    convCourante.messages.push({ role:'user', content: texte });
+    if (!convCourante.titre) convCourante.titre = texte.slice(0, 42);
+    enregistrerConv();
+    champ.value = ''; ajusterHauteur(); enCours = true; envoyer.disabled = true; montrerEcriture();
     try {
       const r = await fetch(FONCTION_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({ messages: historique }),
+        headers: { 'Content-Type':'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
+        body: JSON.stringify({ messages: convCourante.messages, profil: profilTexte() })
       });
-      const data = await r.json();
-      cacherEcriture();
-
-      if (!r.ok || data.error){
-        throw new Error(data.error ? JSON.stringify(data.error) : ('HTTP ' + r.status));
-      }
-
+      const data = await r.json(); cacherEcriture();
+      if (!r.ok || data.error) throw new Error(data.error ? JSON.stringify(data.error) : ('HTTP ' + r.status));
       const reponse = data.reply || "(réponse vide)";
       ajouterMessage(reponse, 'ganndo');
-      historique.push({ role: 'assistant', content: reponse });
-
+      convCourante.messages.push({ role:'assistant', content: reponse });
+      enregistrerConv();
     } catch (e) {
       cacherEcriture();
-      ajouterMessage(
-        "Désolé, je n'ai pas pu répondre. Vérifiez votre connexion, puis réessayez.",
-        'ganndo'
-      );
+      ajouterMessage("Désolé, je n'ai pas pu répondre. Vérifiez votre connexion, puis réessayez.", 'ganndo');
       console.error('Erreur GANNDO :', e);
     } finally {
-      enCours = false;
-      envoyer.disabled = champ.value.trim() === '';
+      enCours = false; envoyer.disabled = champ.value.trim() === '';
     }
   }
 
-  // ===== Champ de saisie : hauteur auto + activation du bouton =====
-  function ajusterHauteur(){
-    champ.style.height = 'auto';
-    champ.style.height = Math.min(champ.scrollHeight, 140) + 'px';
-  }
-  champ.addEventListener('input', () => {
-    ajusterHauteur();
-    envoyer.disabled = enCours || champ.value.trim() === '';
-  });
-
-  // Entrée = envoyer ; Maj+Entrée = nouvelle ligne
+  // ===== Champ de saisie =====
+  function ajusterHauteur(){ champ.style.height = 'auto'; champ.style.height = Math.min(champ.scrollHeight, 140) + 'px'; }
+  champ.addEventListener('input', () => { ajusterHauteur(); envoyer.disabled = enCours || champ.value.trim() === ''; });
   champ.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey){
-      e.preventDefault();
-      soumettre();
-    }
+    if (!estTactile && e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); soumettre(); }
   });
-
   envoyer.addEventListener('click', soumettre);
+  micro.addEventListener('click', () => ajouterMessage("La dictée vocale sera activée à l'étape consacrée à la voix.", 'ganndo'));
 
-  // Micro : placeholder pour l'étape « voix » (à venir)
-  micro.addEventListener('click', () => {
-    ajouterMessage("La dictée vocale sera activée à l'étape consacrée à la voix.", 'ganndo');
-  });
+  // ===== Branchements du menu et des paramètres =====
+  document.getElementById('btn-menu').addEventListener('click', ouvrirDrawer);
+  document.getElementById('btn-fermer-drawer').addEventListener('click', fermerDrawer);
+  overlay.addEventListener('click', fermerDrawer);
+  document.getElementById('btn-nouvelle').addEventListener('click', nouvelleConv);
+  document.getElementById('btn-params').addEventListener('click', ouvrirParams);
+  document.getElementById('btn-annuler-params').addEventListener('click', fermerParams);
+  document.getElementById('btn-save-params').addEventListener('click', enregistrerParams);
 
-  // ===== Message d'accueil (visuel ; non envoyé à Claude) =====
-  ajouterMessage(
-    "Bonjour. Je suis GANNDO, votre confident instruit. " +
-    "Posez-moi une question, ou confiez-moi ce qui vous occupe.",
-    'ganndo'
-  );
+  // ===== Démarrage =====
+  conversations = lire(K_CONV, []);
+  profil = Object.assign({ description:'', attentes:'', eviter:'', soucis:'' }, lire(K_PROFIL, {}));
+  const idActif = lire(K_ACTIVE, null);
+  const trouvee = conversations.find(c => c.id === idActif);
+  if (trouvee) convCourante = trouvee;
+  else if (conversations.length) convCourante = conversations[0];
+  else convCourante = { id: Date.now().toString(), titre:'', messages:[], modifie: Date.now() };
+  afficher(); rendreListe();
 
-  // ===== PWA : activation du service worker (installation + hors-ligne) =====
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch((e) => console.warn('SW :', e));
-    });
+  // ===== PWA : service worker =====
+  if ('serviceWorker' in navigator){
+    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch((e) => console.warn('SW :', e)); });
   }
 </script>
 </body>
