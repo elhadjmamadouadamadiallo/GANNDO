@@ -114,6 +114,9 @@
         font-size:.88em; line-height:1.45;}
   .de-ganndo .bulle hr{border:none; height:1px; background:rgba(224,178,78,.3); margin:.7em 0;}
   .de-ganndo .bulle a{color:var(--or-clair); text-decoration:underline;}
+  .de-ganndo .bulle blockquote{margin:.5em 0; padding:7px 13px;
+        border-left:3px solid var(--or); background:rgba(224,178,78,.09);
+        border-radius:0 8px 8px 0; color:var(--creme-doux);}
   .de-ganndo .bulle > :first-child{margin-top:0;}
   .de-ganndo .bulle > :last-child{margin-bottom:0;}
 
@@ -228,7 +231,7 @@
   function rendreMarkdown(texte){
     const lignes = echapperHTML(texte).split('\n');
     let html = '', dansCode = false, bufCode = [];
-    let typeListe = null, bufListe = [], bufPara = [];
+    let typeListe = null, bufListe = [], bufPara = [], bufCitation = [];
 
     const flushPara = () => { if (bufPara.length){ html += '<p>'+enligne(bufPara.join(' '))+'</p>'; bufPara=[]; } };
     const flushListe = () => {
@@ -237,33 +240,40 @@
         bufListe=[]; typeListe=null;
       }
     };
+    const flushCitation = () => {
+      if (bufCitation.length){ html += '<blockquote>'+enligne(bufCitation.join(' '))+'</blockquote>'; bufCitation=[]; }
+    };
 
     for (const ligne of lignes){
       if (/^```/.test(ligne.trim())){
         if (dansCode){ html += '<pre><code>'+bufCode.join('\n')+'</code></pre>'; bufCode=[]; dansCode=false; }
-        else { flushPara(); flushListe(); dansCode=true; }
+        else { flushPara(); flushListe(); flushCitation(); dansCode=true; }
         continue;
       }
       if (dansCode){ bufCode.push(ligne); continue; }
 
       const t = ligne.trim();
-      if (t === ''){ flushPara(); flushListe(); continue; }
-      if (/^(---+|\*\*\*+|___+)$/.test(t)){ flushPara(); flushListe(); html += '<hr>'; continue; }
+      if (t === ''){ flushPara(); flushListe(); flushCitation(); continue; }
+      if (/^(---+|\*\*\*+|___+)$/.test(t)){ flushPara(); flushListe(); flushCitation(); html += '<hr>'; continue; }
 
       let m;
-      if ((m = t.match(/^(#{1,6})\s+(.*)$/))){
-        flushPara(); flushListe();
+      // Citation : le « > » a été transformé en « &gt; » par l'échappement
+      if ((m = t.match(/^&gt;\s?(.*)$/))){
+        flushPara(); flushListe(); bufCitation.push(m[1]);
+      } else if ((m = t.match(/^(#{1,6})\s+(.*)$/))){
+        flushPara(); flushListe(); flushCitation();
         html += (m[1].length <= 2 ? '<h3>' : '<h4>') + enligne(m[2]) + (m[1].length <= 2 ? '</h3>' : '</h4>');
       } else if ((m = t.match(/^[-*+]\s+(.*)$/))){
-        flushPara(); if (typeListe !== 'ul') flushListe(); typeListe='ul'; bufListe.push(m[1]);
+        flushPara(); flushCitation(); if (typeListe !== 'ul') flushListe(); typeListe='ul'; bufListe.push(m[1]);
       } else if ((m = t.match(/^\d+[.)]\s+(.*)$/))){
-        flushPara(); if (typeListe !== 'ol') flushListe(); typeListe='ol'; bufListe.push(m[1]);
+        flushPara(); flushCitation(); if (typeListe !== 'ol') flushListe(); typeListe='ol'; bufListe.push(m[1]);
       } else {
         if (typeListe) flushListe();
+        flushCitation();
         bufPara.push(t);
       }
     }
-    flushPara(); flushListe();
+    flushPara(); flushListe(); flushCitation();
     if (dansCode) html += '<pre><code>'+bufCode.join('\n')+'</code></pre>';
     return html;
   }
