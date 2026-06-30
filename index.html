@@ -6,6 +6,13 @@
 <meta name="theme-color" content="#0A1430">
 <title>GANNDO — L'instruit, à votre écoute</title>
 
+<!-- PWA : installation sur l'écran d'accueil -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GANNDO">
+
 <!-- Police Lora (le serif de la marque, le même que le logo) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -394,6 +401,13 @@
     "Posez-moi une question, ou confiez-moi ce qui vous occupe.",
     'ganndo'
   );
+
+  // ===== PWA : activation du service worker (installation + hors-ligne) =====
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch((e) => console.warn('SW :', e));
+    });
+  }
 </script>
 </body>
 </html>
