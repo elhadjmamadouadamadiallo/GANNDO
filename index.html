@@ -58,13 +58,11 @@
   }
   .badge{
     width:40px; height:40px; flex:none; border-radius:11px;
-    background:linear-gradient(180deg,#1B2E5C,#0A1430);
     border:1px solid rgba(224,178,78,.45);
-    display:grid; place-items:center;
-    font-family:"Lora",serif; font-weight:700; font-size:24px;
-    color:var(--or-clair);
+    overflow:hidden;
     box-shadow:0 2px 10px rgba(0,0,0,.35);
   }
+  .badge img{width:116%; height:116%; margin:-8%; display:block;}
   .titre{display:flex; flex-direction:column; line-height:1.1;}
   .titre b{
     font-family:"Lora",serif; font-weight:700; letter-spacing:.06em;
@@ -174,7 +172,7 @@
 
 <body>
   <header>
-    <div class="badge">G</div>
+    <div class="badge"><img src="icon-512.png" alt="GANNDO"></div>
     <div class="titre">
       <b>GANNDO</b>
       <span>L'instruit, à votre écoute</span>
