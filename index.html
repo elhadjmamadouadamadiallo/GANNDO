@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A1430">
+<title>GANNDO — L'instruit, à votre écoute</title>
+
+<!-- Police Lora (le serif de la marque, le même que le logo) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ===== Palette de la marque ===== */
+  :root{
+    --encre:#0A1430;        /* fond profond, le bleu nuit du logo */
+    --encre-2:#0E1B3A;
+    --ardoise:#16264F;      /* bulles de GANNDO, surfaces */
+    --ardoise-bord:#28406f;
+    --or:#E0B24E;
+    --or-clair:#F4DA8E;
+    --or-fonce:#C8941F;
+    --creme:#ECE6D6;        /* texte principal sur fond sombre */
+    --creme-doux:#AEB4C6;   /* texte secondaire */
+    --user-txt:#1A1206;     /* texte sur la bulle dorée */
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    color:var(--creme);
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #15244d 0%, transparent 60%),
+      linear-gradient(180deg, var(--encre-2) 0%, var(--encre) 100%);
+    background-attachment:fixed;
+    display:flex; flex-direction:column;
+    height:100dvh;
+  }
+
+  /* ===== En-tête ===== */
+  header{
+    display:flex; align-items:center; gap:12px;
+    padding:12px 16px calc(12px) 16px;
+    padding-top:max(12px, env(safe-area-inset-top));
+    background:rgba(10,20,48,.72);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid rgba(224,178,78,.35);
+    position:sticky; top:0; z-index:5;
+  }
+  .badge{
+    width:40px; height:40px; flex:none; border-radius:11px;
+    background:linear-gradient(180deg,#1B2E5C,#0A1430);
+    border:1px solid rgba(224,178,78,.45);
+    display:grid; place-items:center;
+    font-family:"Lora",serif; font-weight:700; font-size:24px;
+    color:var(--or-clair);
+    box-shadow:0 2px 10px rgba(0,0,0,.35);
+  }
+  .titre{display:flex; flex-direction:column; line-height:1.1;}
+  .titre b{
+    font-family:"Lora",serif; font-weight:700; letter-spacing:.06em;
+    font-size:20px; color:var(--or-clair);
+  }
+  .titre span{font-size:12px; color:var(--creme-doux); margin-top:2px;}
+
+  /* ===== Fil de conversation ===== */
+  #chat{
+    flex:1; overflow-y:auto;
+    padding:20px 14px 8px;
+    display:flex; flex-direction:column; gap:14px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .msg{max-width:84%; display:flex; flex-direction:column; gap:4px;
+       animation:apparait .22s ease both;}
+  .msg .qui{font-size:11px; letter-spacing:.04em; color:var(--or); padding:0 4px;}
+  .bulle{
+    padding:11px 14px; border-radius:16px; font-size:15.5px; line-height:1.5;
+    white-space:pre-wrap; word-wrap:break-word;
+  }
+  /* GANNDO, à gauche */
+  .de-ganndo{align-self:flex-start;}
+  .de-ganndo .bulle{
+    background:var(--ardoise);
+    border:1px solid var(--ardoise-bord);
+    border-top-left-radius:5px;
+    color:var(--creme);
+  }
+  /* Utilisateur, à droite */
+  .de-moi{align-self:flex-end; align-items:flex-end;}
+  .de-moi .bulle{
+    background:linear-gradient(180deg,var(--or-clair),var(--or-fonce));
+    border-top-right-radius:5px;
+    color:var(--user-txt); font-weight:500;
+  }
+
+  /* Indicateur « en train d'écrire » */
+  .points{display:inline-flex; gap:5px; padding:4px 2px;}
+  .points i{width:7px; height:7px; border-radius:50%; background:var(--creme-doux);
+            animation:respire 1.2s infinite ease-in-out;}
+  .points i:nth-child(2){animation-delay:.15s;}
+  .points i:nth-child(3){animation-delay:.3s;}
+
+  /* ===== Barre de saisie ===== */
+  #composer{
+    display:flex; align-items:flex-end; gap:8px;
+    padding:10px 12px;
+    padding-bottom:max(10px, env(safe-area-inset-bottom));
+    background:var(--encre-2);
+    border-top:1px solid rgba(224,178,78,.30);
+  }
+  #champ{
+    flex:1; resize:none; max-height:140px;
+    background:var(--ardoise); color:var(--creme);
+    border:1px solid var(--ardoise-bord); border-radius:18px;
+    padding:11px 14px; font:inherit; font-size:15.5px; line-height:1.4;
+    outline:none;
+  }
+  #champ::placeholder{color:#7e879e;}
+  #champ:focus{border-color:var(--or);}
+  .rond{
+    flex:none; width:44px; height:44px; border-radius:50%;
+    display:grid; place-items:center; cursor:pointer;
+    border:none; background:none;
+  }
+  #micro{border:1px solid var(--or); }
+  #micro svg{stroke:var(--or);}
+  #envoyer{background:linear-gradient(180deg,var(--or-clair),var(--or-fonce));}
+  #envoyer svg{stroke:var(--user-txt);}
+  #envoyer:disabled{opacity:.4;}
+
+  /* ===== Animations ===== */
+  @keyframes apparait{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+  @keyframes respire{0%,80%,100%{opacity:.25; transform:translateY(0);}
+                     40%{opacity:1; transform:translateY(-3px);}}
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none !important;}
+  }
+</style>
+</head>
+
+<body>
+  <header>
+    <div class="badge">G</div>
+    <div class="titre">
+      <b>GANNDO</b>
+      <span>L'instruit, à votre écoute</span>
+    </div>
+  </header>
+
+  <main id="chat" aria-live="polite"></main>
+
+  <footer id="composer">
+    <button id="micro" class="rond" aria-label="Dicter (bientôt)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="3" width="6" height="11" rx="3"/>
+        <path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/>
+      </svg>
+    </button>
+    <textarea id="champ" rows="1" placeholder="Écrivez à GANNDO…"
+              aria-label="Votre message"></textarea>
+    <button id="envoyer" class="rond" aria-label="Envoyer" disabled>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 19V5"/><path d="M5 12l7-7 7 7"/>
+      </svg>
+    </button>
+  </footer>
+
+<script>
+  // ╔══════════════════════════════════════════════════════════════╗
+  // ║  À REMPLIR : les deux valeurs de VOTRE projet Supabase GANNDO  ║
+  // ║  (valeurs PUBLIQUES : elles ont le droit d'être ici)          ║
+  // ╚══════════════════════════════════════════════════════════════╝
+  const SUPABASE_URL      = "https://vlxohhknywychdvynmjg.supabase.co";  // ← votre Project URL
+  const SUPABASE_ANON_KEY = "sb_publishable_2tETwcG7TnhN1_GlJyZzlQ_Y-INrUBz"; // ← clé anon (public)
+
+  // Adresse de l'Edge Function (ne pas modifier)
+  const FONCTION_URL = SUPABASE_URL + "/functions/v1/ganndo";
+
+  // ===== Références aux éléments de la page =====
+  const chat    = document.getElementById('chat');
+  const champ   = document.getElementById('champ');
+  const envoyer = document.getElementById('envoyer');
+  const micro   = document.getElementById('micro');
+
+  // Mémoire de la conversation envoyée à Claude (commence toujours par l'utilisateur)
+  let historique = [];
+  let enCours = false;   // empêche les envois multiples pendant une réponse
+
+  // ===== Ajouter une bulle au fil (purement visuel) =====
+  function ajouterMessage(texte, qui){
+    const bloc = document.createElement('div');
+    bloc.className = 'msg ' + (qui === 'moi' ? 'de-moi' : 'de-ganndo');
+
+    if (qui === 'ganndo'){
+      const etiquette = document.createElement('div');
+      etiquette.className = 'qui';
+      etiquette.textContent = 'GANNDO';
+      bloc.appendChild(etiquette);
+    }
+    const bulle = document.createElement('div');
+    bulle.className = 'bulle';
+    bulle.textContent = texte;
+    bloc.appendChild(bulle);
+
+    chat.appendChild(bloc);
+    descendre();
+    return bulle;
+  }
+  function descendre(){ chat.scrollTop = chat.scrollHeight; }
+
+  // ===== Indicateur « en train d'écrire » =====
+  function montrerEcriture(){
+    const bloc = document.createElement('div');
+    bloc.className = 'msg de-ganndo';
+    bloc.id = 'ecriture';
+    bloc.innerHTML = '<div class="qui">GANNDO</div>' +
+      '<div class="bulle"><span class="points"><i></i><i></i><i></i></span></div>';
+    chat.appendChild(bloc);
+    descendre();
+  }
+  function cacherEcriture(){
+    const e = document.getElementById('ecriture');
+    if (e) e.remove();
+  }
+
+  // ===== Envoyer un message à GANNDO (vraie réponse via l'Edge Function) =====
+  async function soumettre(){
+    const texte = champ.value.trim();
+    if (!texte || enCours) return;
+
+    ajouterMessage(texte, 'moi');
+    historique.push({ role: 'user', content: texte });
+    champ.value = '';
+    ajusterHauteur();
+    enCours = true;
+    envoyer.disabled = true;
+    montrerEcriture();
+
+    try {
+      const r = await fetch(FONCTION_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ messages: historique }),
+      });
+      const data = await r.json();
+      cacherEcriture();
+
+      if (!r.ok || data.error){
+        throw new Error(data.error ? JSON.stringify(data.error) : ('HTTP ' + r.status));
+      }
+
+      const reponse = data.reply || "(réponse vide)";
+      ajouterMessage(reponse, 'ganndo');
+      historique.push({ role: 'assistant', content: reponse });
+
+    } catch (e) {
+      cacherEcriture();
+      ajouterMessage(
+        "Désolé, je n'ai pas pu répondre. Vérifiez votre connexion, puis réessayez.",
+        'ganndo'
+      );
+      console.error('Erreur GANNDO :', e);
+    } finally {
+      enCours = false;
+      envoyer.disabled = champ.value.trim() === '';
+    }
+  }
+
+  // ===== Champ de saisie : hauteur auto + activation du bouton =====
+  function ajusterHauteur(){
+    champ.style.height = 'auto';
+    champ.style.height = Math.min(champ.scrollHeight, 140) + 'px';
+  }
+  champ.addEventListener('input', () => {
+    ajusterHauteur();
+    envoyer.disabled = enCours || champ.value.trim() === '';
+  });
+
+  // Entrée = envoyer ; Maj+Entrée = nouvelle ligne
+  champ.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey){
+      e.preventDefault();
+      soumettre();
+    }
+  });
+
+  envoyer.addEventListener('click', soumettre);
+
+  // Micro : placeholder pour l'étape « voix » (à venir)
+  micro.addEventListener('click', () => {
+    ajouterMessage("La dictée vocale sera activée à l'étape consacrée à la voix.", 'ganndo');
+  });
+
+  // ===== Message d'accueil (visuel ; non envoyé à Claude) =====
+  ajouterMessage(
+    "Bonjour. Je suis GANNDO, votre confident instruit. " +
+    "Posez-moi une question, ou confiez-moi ce qui vous occupe.",
+    'ganndo'
+  );
+</script>
+</body>
+</html>
