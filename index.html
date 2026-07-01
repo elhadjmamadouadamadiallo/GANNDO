@@ -54,9 +54,9 @@
   /* ===== Fil de conversation ===== */
   #chat{flex:1; overflow-y:auto; padding:20px 14px 8px;
     display:flex; flex-direction:column; gap:14px; -webkit-overflow-scrolling:touch;}
-  .msg{max-width:84%; display:flex; flex-direction:column; gap:4px; animation:apparait .22s ease both;}
+  .msg{max-width:84%; display:flex; flex-direction:column; gap:4px; scroll-margin-top:12px; animation:apparait .22s ease both;}
   .msg .qui{font-size:11px; letter-spacing:.04em; color:var(--or); padding:0 4px;}
-  .bulle{padding:11px 14px; border-radius:16px; font-size:15.5px; line-height:1.5; word-wrap:break-word;}
+  .bulle{padding:11px 14px; border-radius:16px; font-size:15.5px; line-height:1.5; overflow-wrap:anywhere; word-wrap:break-word;}
   .de-ganndo{align-self:flex-start;}
   .de-ganndo .bulle{background:var(--ardoise); border:1px solid var(--ardoise-bord);
     border-top-left-radius:5px; color:var(--creme);}
@@ -91,6 +91,13 @@
   .de-ganndo .bulle > :first-child{margin-top:0;}
   .de-ganndo .bulle > :last-child{margin-bottom:0;}
 
+  .de-ganndo .actions{margin-top:3px; padding:0 2px;}
+  .btn-copier{display:inline-flex; align-items:center; gap:5px; border:none; background:none;
+    color:var(--creme-doux); font:inherit; font-size:12px; cursor:pointer; padding:3px 5px; border-radius:7px;}
+  .btn-copier svg{width:14px; height:14px; stroke:var(--creme-doux);}
+  .btn-copier:active{background:rgba(255,255,255,.06);}
+  .btn-copier.ok{color:var(--or);}
+  .btn-copier.ok svg{stroke:var(--or);}
   .points{display:inline-flex; gap:5px; padding:4px 2px;}
   .points i{width:7px; height:7px; border-radius:50%; background:var(--creme-doux); animation:respire 1.2s infinite ease-in-out;}
   .points i:nth-child(2){animation-delay:.15s;} .points i:nth-child(3){animation-delay:.3s;}
@@ -335,6 +342,16 @@
   }
 
   // ===== Affichage des bulles =====
+  const ICONE_COPIER = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
+  async function copierTexte(texte, bouton){
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText){ await navigator.clipboard.writeText(texte); }
+      else { const ta = document.createElement('textarea'); ta.value = texte; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
+      const span = bouton.querySelector('span'); if (span) span.textContent = 'Copié ✓';
+      bouton.classList.add('ok');
+      setTimeout(() => { if (span) span.textContent = 'Copier'; bouton.classList.remove('ok'); }, 1500);
+    } catch (e) { console.warn('Copie :', e); }
+  }
   function ajouterMessage(texte, qui){
     const bloc = document.createElement('div');
     bloc.className = 'msg ' + (qui === 'moi' ? 'de-moi' : 'de-ganndo');
@@ -343,9 +360,20 @@
     }
     const bulle = document.createElement('div'); bulle.className = 'bulle';
     if (qui === 'ganndo') bulle.innerHTML = rendreMarkdown(texte); else bulle.textContent = texte;
-    bloc.appendChild(bulle); chat.appendChild(bloc); descendre(); return bulle;
+    bloc.appendChild(bulle);
+    if (qui === 'ganndo'){
+      const actions = document.createElement('div'); actions.className = 'actions';
+      const copier = document.createElement('button'); copier.type = 'button'; copier.className = 'btn-copier';
+      copier.innerHTML = ICONE_COPIER + '<span>Copier</span>';
+      copier.addEventListener('click', () => copierTexte(texte, copier));
+      actions.appendChild(copier); bloc.appendChild(actions);
+    }
+    chat.appendChild(bloc);
+    if (qui === 'ganndo') alignerHaut(bloc); else descendre();
+    return bulle;
   }
   function descendre(){ chat.scrollTop = chat.scrollHeight; }
+  function alignerHaut(bloc){ try { bloc.scrollIntoView({ block: 'start' }); } catch (e) { descendre(); } }
   function montrerEcriture(){
     const bloc = document.createElement('div'); bloc.className = 'msg de-ganndo'; bloc.id = 'ecriture';
     bloc.innerHTML = '<div class="qui">GANNDO IA</div><div class="bulle"><span class="points"><i></i><i></i><i></i></span></div>';
