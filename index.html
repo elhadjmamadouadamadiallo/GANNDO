@@ -263,7 +263,7 @@
       <textarea id="p-eviter" placeholder="Les sujets, formulations ou attitudes à éviter…"></textarea>
       <label for="p-soucis">Ce qui vous préoccupe en ce moment</label>
       <textarea id="p-soucis" placeholder="Vos projets, vos défis, ce qui vous occupe l'esprit…"></textarea>
-      <p class="version-app">GANNDO IA · version 7</p>
+      <p class="version-app">GANNDO IA · version 8</p>
     </div>
     <div class="modal-actions">
       <button id="btn-annuler-params" class="btn-annuler">Annuler</button>
@@ -305,7 +305,7 @@
   const estTactile = window.matchMedia('(pointer: coarse)').matches;
   const RecoAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
   const synthOK = 'speechSynthesis' in window;
-  let reco = null, enEcoute = false, texteAvantDictee = '', voixFr = null, boutonEnLecture = null;
+  let reco = null, enEcoute = false, arretVoulu = false, texteAvantDictee = '', voixFr = null, boutonEnLecture = null;
 
   // ===== Éléments =====
   const chat = document.getElementById('chat');
@@ -567,31 +567,36 @@
     demarrerDictee();
   }
   function demarrerDictee(){
-    try { reco = new RecoAPI(); } catch (e) { return; }
-    reco.lang = 'fr-FR'; reco.continuous = true; reco.interimResults = true;
+    arretVoulu = false; enEcoute = true;
     texteAvantDictee = champ.value ? champ.value.replace(/\s+$/, '') + ' ' : '';
+    majMicro(); lancerReco();
+  }
+  function lancerReco(){
+    try { reco = new RecoAPI(); } catch (e) { enEcoute = false; majMicro(); return; }
+    reco.lang = 'fr-FR'; reco.continuous = true; reco.interimResults = true;
     reco.onresult = (e) => {
-      let finales = '', interim = '';
-      for (let i = 0; i < e.results.length; i++){
-        const r = e.results[i];
-        if (r.isFinal) finales += r[0].transcript + ' ';
-        else interim = r[0].transcript;   // on ne garde que le dernier fragment (évite l'empilement Android)
-      }
-      const dicte = (finales + interim).replace(/\s+/g, ' ').trim();
-      champ.value = texteAvantDictee + dicte;
+      // On ne garde que le dernier résultat (le plus complet) — évite les répétitions d'Android
+      const dernier = e.results[e.results.length - 1];
+      const texte = dernier ? dernier[0].transcript : '';
+      champ.value = texteAvantDictee + texte;
       valeurAvant = champ.value;
       ajusterHauteur(); majEnvoyer();
     };
     reco.onerror = (e) => {
-      enEcoute = false; majMicro();
       if (e.error === 'not-allowed' || e.error === 'service-not-allowed'){
+        arretVoulu = true; enEcoute = false; majMicro();
         ajouterMessage("Je n'ai pas accès au micro. Autorise le microphone pour ce site, puis réessaie.", 'ganndo');
       }
     };
-    reco.onend = () => { enEcoute = false; majMicro(); };
-    try { reco.start(); enEcoute = true; majMicro(); } catch (err) { console.warn('Dictée :', err); }
+    reco.onend = () => {
+      // On garde ce qui a été dicté, puis on relance tant que l'utilisateur n'a pas arrêté
+      texteAvantDictee = champ.value ? champ.value.replace(/\s+$/, '') + ' ' : '';
+      if (!arretVoulu && enEcoute){ setTimeout(() => { if (!arretVoulu && enEcoute) lancerReco(); }, 150); }
+      else { enEcoute = false; majMicro(); }
+    };
+    try { reco.start(); } catch (err) { console.warn('Dictée :', err); }
   }
-  function arreterDictee(){ if (reco){ try { reco.stop(); } catch (e) {} } enEcoute = false; majMicro(); }
+  function arreterDictee(){ arretVoulu = true; enEcoute = false; if (reco){ try { reco.stop(); } catch (e) {} } majMicro(); }
 
   function chargerVoix(){ if (!synthOK) return; const v = speechSynthesis.getVoices(); voixFr = v.find(x => /^fr/i.test(x.lang)) || voixFr; }
   function texteVocal(md){
