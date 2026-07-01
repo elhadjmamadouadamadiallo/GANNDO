@@ -295,7 +295,8 @@
   let profil = { description:'', attentes:'', eviter:'', soucis:'' };
   let enCours = false;
   let piecesJointes = [];   // contenus collés en attente d'envoi
-  const SEUIL_CARS = 500, SEUIL_LIGNES = 8;   // au-delà, un collage devient une pièce jointe
+  let valeurAvant = '';     // pour détecter un collage massif sur mobile
+  const SEUIL_CARS = 500, SEUIL_LIGNES = 8, SEUIL_DELTA = 100;   // au-delà, un collage devient une pièce jointe
   const estTactile = window.matchMedia('(pointer: coarse)').matches;
 
   // ===== Éléments =====
@@ -551,7 +552,7 @@
     convCourante.messages.push(apercu ? { role:'user', content: contenuComplet, apercu: apercu } : { role:'user', content: contenuComplet });
     if (!convCourante.titre) convCourante.titre = (texteTape || (piecesJointes[0] && piecesJointes[0].nom) || 'Fichier collé').slice(0, 42);
     enregistrerConv();
-    champ.value = ''; piecesJointes = []; rendrePieces(); ajusterHauteur(); enCours = true; envoyer.disabled = true; montrerEcriture();
+    champ.value = ''; valeurAvant = ''; piecesJointes = []; rendrePieces(); ajusterHauteur(); enCours = true; envoyer.disabled = true; montrerEcriture();
     try {
       const r = await fetch(FONCTION_URL, {
         method: 'POST',
@@ -575,14 +576,28 @@
 
   // ===== Champ de saisie =====
   function ajusterHauteur(){ champ.style.height = 'auto'; champ.style.height = Math.min(champ.scrollHeight, 140) + 'px'; }
-  champ.addEventListener('input', () => { ajusterHauteur(); majEnvoyer(); });
+  // Collage détecté proprement (surtout sur ordinateur)
+  champ.addEventListener('paste', (e) => {
+    const donnees = e.clipboardData || window.clipboardData;
+    const txt = donnees ? donnees.getData('text') : '';
+    if (txt && estLong(txt)){ e.preventDefault(); ajouterPiece(txt); valeurAvant = champ.value; }
+  });
+  // Saisie : détecte aussi un collage massif quand « paste » n'est pas fiable (mobile)
+  champ.addEventListener('input', () => {
+    const val = champ.value;
+    const delta = val.length - valeurAvant.length;
+    if (delta >= SEUIL_DELTA && estLong(val)){
+      let colle = val, reste = '';
+      if (valeurAvant && val.startsWith(valeurAvant)){ colle = val.slice(valeurAvant.length); reste = valeurAvant; }
+      else if (valeurAvant && val.endsWith(valeurAvant)){ colle = val.slice(0, val.length - valeurAvant.length); reste = valeurAvant; }
+      champ.value = reste; valeurAvant = reste;
+      ajouterPiece(colle); ajusterHauteur(); majEnvoyer();
+      return;
+    }
+    valeurAvant = val; ajusterHauteur(); majEnvoyer();
+  });
   champ.addEventListener('keydown', (e) => {
     if (!estTactile && e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); soumettre(); }
-  });
-  champ.addEventListener('paste', (e) => {
-    const donnees = e.clipboardData || window.clipboardData; if (!donnees) return;
-    const txt = donnees.getData('text');
-    if (txt && estLong(txt)){ e.preventDefault(); ajouterPiece(txt); }
   });
   envoyer.addEventListener('click', soumettre);
   micro.addEventListener('click', () => ajouterMessage("La dictée vocale sera activée à l'étape consacrée à la voix.", 'ganndo'));
