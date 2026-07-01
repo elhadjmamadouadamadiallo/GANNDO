@@ -103,9 +103,34 @@
   .points i:nth-child(2){animation-delay:.15s;} .points i:nth-child(3){animation-delay:.3s;}
 
   /* ===== Barre de saisie ===== */
-  #composer{display:flex; align-items:flex-end; gap:8px; padding:10px 12px;
+  #composer{display:flex; flex-direction:column; gap:8px; padding:10px 12px;
     padding-bottom:max(10px, env(safe-area-inset-bottom));
     background:var(--encre-2); border-top:1px solid rgba(224,178,78,.30);}
+  .ligne-saisie{display:flex; align-items:flex-end; gap:8px;}
+  /* Pièces jointes (contenu collé condensé) */
+  .pieces{display:flex; flex-wrap:wrap; gap:6px;}
+  .piece{display:flex; align-items:center; gap:8px; background:var(--ardoise); border:1px solid var(--ardoise-bord);
+    border-radius:10px; padding:6px 6px 6px 10px; max-width:100%; cursor:pointer;}
+  .piece svg.doc, .piece-bulle svg.doc{width:20px; height:20px; flex:none;}
+  .piece svg.doc{stroke:var(--or);}
+  .piece .info, .piece-bulle .info{display:flex; flex-direction:column; min-width:0;}
+  .piece .nom, .piece-bulle .nom{font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .piece .nom{color:var(--creme);}
+  .piece .meta{font-size:11px; color:var(--creme-doux);}
+  .piece-suppr{border:none; background:none; cursor:pointer; width:28px; height:28px; display:grid; place-items:center; flex:none;}
+  .piece-suppr svg{width:15px; height:15px; stroke:var(--creme-doux);}
+  /* Pièce jointe telle qu'affichée dans la bulle envoyée (fond doré) */
+  .apercu-user{display:flex; flex-direction:column; gap:8px;}
+  .piece-bulle{display:flex; align-items:center; gap:8px; background:rgba(10,20,48,.16); border:1px solid rgba(10,20,48,.22);
+    border-radius:10px; padding:7px 10px; cursor:pointer;}
+  .piece-bulle svg.doc{stroke:#5a4413;}
+  .piece-bulle .nom{color:var(--user-txt);}
+  .piece-bulle .meta{font-size:11px; color:#5a4413;}
+  .apercu-txt{white-space:pre-wrap;}
+  /* Aperçu plein écran d'une pièce */
+  .apercu-corps{flex:1; overflow:auto; padding:16px;}
+  #apercu-texte{white-space:pre-wrap; overflow-wrap:anywhere; margin:0;
+    font-family:ui-monospace,Menlo,Consolas,monospace; font-size:13px; line-height:1.5; color:var(--creme);}
   #champ{flex:1; resize:none; max-height:140px; background:var(--ardoise); color:var(--creme);
     border:1px solid var(--ardoise-bord); border-radius:18px; padding:11px 14px;
     font:inherit; font-size:15.5px; line-height:1.4; outline:none;}
@@ -183,17 +208,20 @@
   <main id="chat" aria-live="polite"></main>
 
   <footer id="composer">
-    <button id="micro" class="rond" aria-label="Dicter (bientôt)">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/>
-      </svg>
-    </button>
-    <textarea id="champ" rows="1" placeholder="Écrivez à GANNDO IA…" aria-label="Votre message"></textarea>
-    <button id="envoyer" class="rond" aria-label="Envoyer" disabled>
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 19V5"/><path d="M5 12l7-7 7 7"/>
-      </svg>
-    </button>
+    <div id="pieces" class="pieces" hidden></div>
+    <div class="ligne-saisie">
+      <button id="micro" class="rond" aria-label="Dicter (bientôt)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/>
+        </svg>
+      </button>
+      <textarea id="champ" rows="1" placeholder="Écrivez à GANNDO IA…" aria-label="Votre message"></textarea>
+      <button id="envoyer" class="rond" aria-label="Envoyer" disabled>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 19V5"/><path d="M5 12l7-7 7 7"/>
+        </svg>
+      </button>
+    </div>
   </footer>
 
   <!-- ===== Menu latéral ===== -->
@@ -238,6 +266,15 @@
     </div>
   </div>
 
+  <!-- ===== Aperçu d'une pièce jointe ===== -->
+  <div id="modal-apercu" class="modal" hidden>
+    <h2>Aperçu du contenu</h2>
+    <div class="apercu-corps"><pre id="apercu-texte"></pre></div>
+    <div class="modal-actions">
+      <button id="btn-fermer-apercu" class="btn-valider">Fermer</button>
+    </div>
+  </div>
+
 <script>
   // ╔══════════════════════════════════════════════════════════════╗
   // ║  Valeurs publiques de votre projet Supabase GANNDO            ║
@@ -257,6 +294,8 @@
   let convCourante = null;
   let profil = { description:'', attentes:'', eviter:'', soucis:'' };
   let enCours = false;
+  let piecesJointes = [];   // contenus collés en attente d'envoi
+  const SEUIL_CARS = 500, SEUIL_LIGNES = 8;   // au-delà, un collage devient une pièce jointe
   const estTactile = window.matchMedia('(pointer: coarse)').matches;
 
   // ===== Éléments =====
@@ -272,6 +311,9 @@
   const pAttentes = document.getElementById('p-attentes');
   const pEviter = document.getElementById('p-eviter');
   const pSoucis = document.getElementById('p-soucis');
+  const zonePieces = document.getElementById('pieces');
+  const modalApercu = document.getElementById('modal-apercu');
+  const apercuTexte = document.getElementById('apercu-texte');
 
   // ===== Stockage local (avec garde-fous) =====
   function lire(cle, defaut){ try{ const v = localStorage.getItem(cle); return v ? JSON.parse(v) : defaut; }catch(e){ return defaut; } }
@@ -352,14 +394,16 @@
       setTimeout(() => { if (span) span.textContent = 'Copier'; bouton.classList.remove('ok'); }, 1500);
     } catch (e) { console.warn('Copie :', e); }
   }
-  function ajouterMessage(texte, qui){
+  function ajouterMessage(texte, qui, apercu){
     const bloc = document.createElement('div');
     bloc.className = 'msg ' + (qui === 'moi' ? 'de-moi' : 'de-ganndo');
     if (qui === 'ganndo'){
       const e = document.createElement('div'); e.className = 'qui'; e.textContent = 'GANNDO IA'; bloc.appendChild(e);
     }
     const bulle = document.createElement('div'); bulle.className = 'bulle';
-    if (qui === 'ganndo') bulle.innerHTML = rendreMarkdown(texte); else bulle.textContent = texte;
+    if (qui === 'ganndo') bulle.innerHTML = rendreMarkdown(texte);
+    else if (apercu) bulle.appendChild(construireApercuUser(apercu));
+    else bulle.textContent = texte;
     bloc.appendChild(bulle);
     if (qui === 'ganndo'){
       const actions = document.createElement('div'); actions.className = 'actions';
@@ -381,6 +425,49 @@
   }
   function cacherEcriture(){ const e = document.getElementById('ecriture'); if (e) e.remove(); }
 
+  // ===== Pièces jointes (contenu collé condensé) =====
+  const ICONE_DOC = '<svg class="doc" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>';
+  const ICONE_X = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  function estLong(txt){ return txt.length >= SEUIL_CARS || txt.split('\n').length >= SEUIL_LIGNES; }
+  function majEnvoyer(){ envoyer.disabled = enCours || (champ.value.trim() === '' && piecesJointes.length === 0); }
+  function ajouterPiece(contenu){
+    piecesJointes.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), nom: 'Texte collé', contenu: contenu, lignes: contenu.split('\n').length });
+    rendrePieces(); majEnvoyer();
+  }
+  function retirerPiece(id){ piecesJointes = piecesJointes.filter(p => p.id !== id); rendrePieces(); majEnvoyer(); }
+  function rendrePieces(){
+    zonePieces.innerHTML = '';
+    zonePieces.hidden = piecesJointes.length === 0;
+    for (const p of piecesJointes){
+      const carte = document.createElement('div'); carte.className = 'piece';
+      carte.innerHTML = ICONE_DOC + '<div class="info"><span class="nom">' + p.nom + '</span><span class="meta">' + p.lignes + ' lignes · ' + p.contenu.length + ' caractères</span></div>';
+      carte.addEventListener('click', () => ouvrirApercu(p.contenu));
+      const suppr = document.createElement('button'); suppr.type = 'button'; suppr.className = 'piece-suppr'; suppr.setAttribute('aria-label', 'Retirer');
+      suppr.innerHTML = ICONE_X;
+      suppr.addEventListener('click', (e) => { e.stopPropagation(); retirerPiece(p.id); });
+      carte.appendChild(suppr); zonePieces.appendChild(carte);
+    }
+  }
+  function construireApercuUser(apercu){
+    const wrap = document.createElement('div'); wrap.className = 'apercu-user';
+    for (const p of apercu.pieces){
+      const carte = document.createElement('div'); carte.className = 'piece-bulle';
+      carte.innerHTML = ICONE_DOC + '<div class="info"><span class="nom">' + echapperHTML(p.nom) + '</span><span class="meta">' + p.lignes + ' lignes</span></div>';
+      carte.addEventListener('click', () => ouvrirApercu(p.contenu));
+      wrap.appendChild(carte);
+    }
+    if (apercu.texte){ const t = document.createElement('div'); t.className = 'apercu-txt'; t.textContent = apercu.texte; wrap.appendChild(t); }
+    return wrap;
+  }
+  function ouvrirApercu(contenu){ apercuTexte.textContent = contenu; modalApercu.hidden = false; }
+  function fermerApercu(){ modalApercu.hidden = true; }
+  function composerEnvoi(texteTape){
+    let complet = '';
+    for (const p of piecesJointes){ complet += 'Contenu joint (' + p.nom + ') :\n"""\n' + p.contenu + '\n"""\n\n'; }
+    complet += texteTape;
+    return complet.trim();
+  }
+
   // ===== Profil → texte pour GANNDO =====
   function profilTexte(){
     const p = profil, l = [];
@@ -395,7 +482,7 @@
   function afficher(){
     chat.innerHTML = '';
     if (!convCourante.messages.length) ajouterMessage(MSG_ACCUEIL, 'ganndo');
-    else for (const m of convCourante.messages) ajouterMessage(m.content, m.role === 'user' ? 'moi' : 'ganndo');
+    else for (const m of convCourante.messages) ajouterMessage(m.content, m.role === 'user' ? 'moi' : 'ganndo', m.apercu);
   }
   function nouvelleConv(){
     convCourante = { id: Date.now().toString(), titre:'', messages:[], modifie: Date.now() };
@@ -456,18 +543,20 @@
 
   // ===== Envoi d'un message =====
   async function soumettre(){
-    const texte = champ.value.trim();
-    if (!texte || enCours) return;
-    ajouterMessage(texte, 'moi');
-    convCourante.messages.push({ role:'user', content: texte });
-    if (!convCourante.titre) convCourante.titre = texte.slice(0, 42);
+    const texteTape = champ.value.trim();
+    if ((!texteTape && piecesJointes.length === 0) || enCours) return;
+    const contenuComplet = composerEnvoi(texteTape);
+    const apercu = piecesJointes.length ? { texte: texteTape, pieces: piecesJointes.map(p => ({ nom: p.nom, lignes: p.lignes, contenu: p.contenu })) } : null;
+    ajouterMessage(contenuComplet, 'moi', apercu);
+    convCourante.messages.push(apercu ? { role:'user', content: contenuComplet, apercu: apercu } : { role:'user', content: contenuComplet });
+    if (!convCourante.titre) convCourante.titre = (texteTape || (piecesJointes[0] && piecesJointes[0].nom) || 'Fichier collé').slice(0, 42);
     enregistrerConv();
-    champ.value = ''; ajusterHauteur(); enCours = true; envoyer.disabled = true; montrerEcriture();
+    champ.value = ''; piecesJointes = []; rendrePieces(); ajusterHauteur(); enCours = true; envoyer.disabled = true; montrerEcriture();
     try {
       const r = await fetch(FONCTION_URL, {
         method: 'POST',
         headers: { 'Content-Type':'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
-        body: JSON.stringify({ messages: convCourante.messages, profil: profilTexte() })
+        body: JSON.stringify({ messages: convCourante.messages.map(m => ({ role: m.role, content: m.content })), profil: profilTexte() })
       });
       const data = await r.json(); cacherEcriture();
       if (!r.ok || data.error) throw new Error(data.error ? JSON.stringify(data.error) : ('HTTP ' + r.status));
@@ -480,15 +569,20 @@
       ajouterMessage("Désolé, je n'ai pas pu répondre. Vérifiez votre connexion, puis réessayez.", 'ganndo');
       console.error('Erreur GANNDO :', e);
     } finally {
-      enCours = false; envoyer.disabled = champ.value.trim() === '';
+      enCours = false; majEnvoyer();
     }
   }
 
   // ===== Champ de saisie =====
   function ajusterHauteur(){ champ.style.height = 'auto'; champ.style.height = Math.min(champ.scrollHeight, 140) + 'px'; }
-  champ.addEventListener('input', () => { ajusterHauteur(); envoyer.disabled = enCours || champ.value.trim() === ''; });
+  champ.addEventListener('input', () => { ajusterHauteur(); majEnvoyer(); });
   champ.addEventListener('keydown', (e) => {
     if (!estTactile && e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); soumettre(); }
+  });
+  champ.addEventListener('paste', (e) => {
+    const donnees = e.clipboardData || window.clipboardData; if (!donnees) return;
+    const txt = donnees.getData('text');
+    if (txt && estLong(txt)){ e.preventDefault(); ajouterPiece(txt); }
   });
   envoyer.addEventListener('click', soumettre);
   micro.addEventListener('click', () => ajouterMessage("La dictée vocale sera activée à l'étape consacrée à la voix.", 'ganndo'));
@@ -501,6 +595,7 @@
   document.getElementById('btn-params').addEventListener('click', ouvrirParams);
   document.getElementById('btn-annuler-params').addEventListener('click', fermerParams);
   document.getElementById('btn-save-params').addEventListener('click', enregistrerParams);
+  document.getElementById('btn-fermer-apercu').addEventListener('click', fermerApercu);
 
   // ===== Démarrage : on ouvre toujours sur une conversation neuve =====
   // (les conversations passées restent accessibles via le menu ☰)
