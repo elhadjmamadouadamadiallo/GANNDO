@@ -5,7 +5,7 @@
 //  ressources externes : il ne met en cache que les fichiers de l'app.
 // ===================================================================
 
-const CACHE = 'ganndo-v4';
+const CACHE = 'ganndo-v5';
 const FICHIERS = [
   './',
   './index.html',
@@ -42,8 +42,13 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(
     fetch(req)
       .then((res) => {
-        const copie = res.clone();
-        caches.open(CACHE).then((c) => c.put(req, copie));
+        // On ne met en cache que les réponses valides (pas les 404/500)
+        if (res && res.ok){
+          const copie = res.clone();
+          caches.open(CACHE)
+            .then((c) => c.put(req, copie))
+            .catch((err) => console.warn('[SW] Échec mise en cache :', err));
+        }
         return res;
       })
       .catch(() => caches.match(req).then((r) => r || caches.match('./index.html')))
