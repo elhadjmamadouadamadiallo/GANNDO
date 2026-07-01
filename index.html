@@ -568,10 +568,9 @@
     try { reco = new RecoAPI(); } catch (e) { return; }
     reco.lang = 'fr-FR'; reco.continuous = true; reco.interimResults = true;
     texteAvantDictee = champ.value ? champ.value.replace(/\s+$/, '') + ' ' : '';
-    let finales = '';
     reco.onresult = (e) => {
-      let interim = '';
-      for (let i = e.resultIndex; i < e.results.length; i++){
+      let finales = '', interim = '';
+      for (let i = 0; i < e.results.length; i++){
         const seg = e.results[i][0].transcript;
         if (e.results[i].isFinal) finales += seg; else interim += seg;
       }
