@@ -82,6 +82,12 @@
   .de-ganndo .bulle a{color:var(--or-clair); text-decoration:underline;}
   .de-ganndo .bulle blockquote{margin:.5em 0; padding:7px 13px; border-left:3px solid var(--or);
     background:rgba(224,178,78,.09); border-radius:0 8px 8px 0; color:var(--creme-doux);}
+  .de-ganndo .bulle .table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch; margin:.6em 0;}
+  .de-ganndo .bulle table{border-collapse:collapse; min-width:100%; font-size:13.5px;}
+  .de-ganndo .bulle th,.de-ganndo .bulle td{border:1px solid var(--ardoise-bord);
+    padding:6px 9px; text-align:left; vertical-align:top; min-width:96px;}
+  .de-ganndo .bulle th{background:rgba(224,178,78,.15); color:var(--or-clair); font-weight:700;}
+  .de-ganndo .bulle td{color:var(--creme);}
   .de-ganndo .bulle > :first-child{margin-top:0;}
   .de-ganndo .bulle > :last-child{margin-bottom:0;}
 
@@ -282,7 +288,13 @@
     const flushPara = () => { if (bufPara.length){ html += '<p>'+enligne(bufPara.join(' '))+'</p>'; bufPara=[]; } };
     const flushListe = () => { if (typeListe){ html += '<'+typeListe+'>'+bufListe.map(x => '<li>'+enligne(x)+'</li>').join('')+'</'+typeListe+'>'; bufListe=[]; typeListe=null; } };
     const flushCitation = () => { if (bufCitation.length){ html += '<blockquote>'+enligne(bufCitation.join(' '))+'</blockquote>'; bufCitation=[]; } };
-    for (const ligne of lignes){
+
+    // Découpe une ligne de tableau en cellules, et reconnaît la ligne de séparation |---|---|
+    const cellules = (s) => { s = s.trim(); if (s.startsWith('|')) s = s.slice(1); if (s.endsWith('|')) s = s.slice(0, -1); return s.split('|').map(c => c.trim()); };
+    const estSepTable = (s) => /^[\s|:\-]+$/.test(s) && s.includes('-') && s.includes('|');
+
+    for (let i = 0; i < lignes.length; i++){
+      const ligne = lignes[i];
       if (/^```/.test(ligne.trim())){
         if (dansCode){ html += '<pre><code>'+bufCode.join('\n')+'</code></pre>'; bufCode=[]; dansCode=false; }
         else { flushPara(); flushListe(); flushCitation(); dansCode=true; }
@@ -291,6 +303,23 @@
       if (dansCode){ bufCode.push(ligne); continue; }
       const t = ligne.trim();
       if (t === ''){ flushPara(); flushListe(); flushCitation(); continue; }
+
+      // Tableau : une ligne avec « | » suivie d'une ligne de séparation « |---|---| »
+      if (t.includes('|') && i + 1 < lignes.length && estSepTable(lignes[i+1].trim())){
+        flushPara(); flushListe(); flushCitation();
+        const entete = cellules(t);
+        i += 2;
+        const corps = [];
+        while (i < lignes.length && lignes[i].trim() !== '' && lignes[i].includes('|')){
+          corps.push(cellules(lignes[i].trim())); i++;
+        }
+        i--;
+        let tb = '<table><thead><tr>' + entete.map(c => '<th>'+enligne(c)+'</th>').join('') + '</tr></thead><tbody>';
+        for (const r of corps) tb += '<tr>' + r.map(c => '<td>'+enligne(c)+'</td>').join('') + '</tr>';
+        html += '<div class="table-wrap">' + tb + '</tbody></table></div>';
+        continue;
+      }
+
       if (/^(---+|\*\*\*+|___+)$/.test(t)){ flushPara(); flushListe(); flushCitation(); html += '<hr>'; continue; }
       let m;
       if ((m = t.match(/^&gt;\s?(.*)$/))){ flushPara(); flushListe(); bufCitation.push(m[1]); }
@@ -445,14 +474,11 @@
   document.getElementById('btn-annuler-params').addEventListener('click', fermerParams);
   document.getElementById('btn-save-params').addEventListener('click', enregistrerParams);
 
-  // ===== Démarrage =====
+  // ===== Démarrage : on ouvre toujours sur une conversation neuve =====
+  // (les conversations passées restent accessibles via le menu ☰)
   conversations = lire(K_CONV, []);
   profil = Object.assign({ description:'', attentes:'', eviter:'', soucis:'' }, lire(K_PROFIL, {}));
-  const idActif = lire(K_ACTIVE, null);
-  const trouvee = conversations.find(c => c.id === idActif);
-  if (trouvee) convCourante = trouvee;
-  else if (conversations.length) convCourante = conversations[0];
-  else convCourante = { id: Date.now().toString(), titre:'', messages:[], modifie: Date.now() };
+  convCourante = { id: Date.now().toString(), titre:'', messages:[], modifie: Date.now() };
   afficher(); rendreListe();
 
   // ===== PWA : service worker =====
