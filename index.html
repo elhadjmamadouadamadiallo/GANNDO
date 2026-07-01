@@ -52,11 +52,11 @@
   .icone-entete:active{background:rgba(255,255,255,.06);}
 
   /* ===== Fil de conversation ===== */
-  #chat{flex:1; overflow-y:auto; padding:20px 14px 8px;
+  #chat{flex:1; overflow-y:auto; overflow-x:hidden; padding:20px 14px 8px;
     display:flex; flex-direction:column; gap:14px; -webkit-overflow-scrolling:touch;}
-  .msg{max-width:84%; display:flex; flex-direction:column; gap:4px; scroll-margin-top:12px; animation:apparait .22s ease both;}
+  .msg{max-width:84%; min-width:0; display:flex; flex-direction:column; gap:4px; scroll-margin-top:12px; animation:apparait .22s ease both;}
   .msg .qui{font-size:11px; letter-spacing:.04em; color:var(--or); padding:0 4px;}
-  .bulle{padding:11px 14px; border-radius:16px; font-size:15.5px; line-height:1.5; overflow-wrap:anywhere; word-wrap:break-word;}
+  .bulle{max-width:100%; padding:11px 14px; border-radius:16px; font-size:15.5px; line-height:1.5; overflow-wrap:anywhere; word-wrap:break-word;}
   .de-ganndo{align-self:flex-start;}
   .de-ganndo .bulle{background:var(--ardoise); border:1px solid var(--ardoise-bord);
     border-top-left-radius:5px; color:var(--creme);}
