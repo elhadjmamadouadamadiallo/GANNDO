@@ -127,6 +127,8 @@
   .piece-bulle .nom{color:var(--user-txt);}
   .piece-bulle .meta{font-size:11px; color:#5a4413;}
   .apercu-txt{white-space:pre-wrap;}
+  .miniature{width:36px; height:36px; border-radius:7px; object-fit:cover; flex:none;}
+  #btn-fichier{border:1px solid var(--ardoise-bord);} #btn-fichier svg{stroke:var(--or);}
   .version-app{text-align:center; color:var(--creme-doux); font-size:11px; margin-top:20px; opacity:.8;}
   /* Aperçu plein écran d'une pièce */
   .apercu-corps{flex:1; overflow:auto; padding:16px;}
@@ -214,6 +216,9 @@
   <footer id="composer">
     <div id="pieces" class="pieces" hidden></div>
     <div class="ligne-saisie">
+      <button id="btn-fichier" class="rond" aria-label="Joindre une image ou un PDF">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.5 12.5 21a5 5 0 0 1-7-7l8.5-8.5a3.5 3.5 0 0 1 5 5L10.5 18a2 2 0 0 1-3-3l7-7"/></svg>
+      </button>
       <button id="micro" class="rond" aria-label="Dicter (bientôt)">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/>
@@ -227,6 +232,7 @@
       </button>
     </div>
   </footer>
+  <input id="input-fichier" type="file" accept="image/*,application/pdf" multiple hidden>
 
   <!-- ===== Menu latéral ===== -->
   <div id="overlay" class="overlay" hidden></div>
@@ -263,7 +269,7 @@
       <textarea id="p-eviter" placeholder="Les sujets, formulations ou attitudes à éviter…"></textarea>
       <label for="p-soucis">Ce qui vous préoccupe en ce moment</label>
       <textarea id="p-soucis" placeholder="Vos projets, vos défis, ce qui vous occupe l'esprit…"></textarea>
-      <p class="version-app">GANNDO IA · version 8</p>
+      <p class="version-app">GANNDO IA · version 9</p>
     </div>
     <div class="modal-actions">
       <button id="btn-annuler-params" class="btn-annuler">Annuler</button>
@@ -300,6 +306,7 @@
   let profil = { description:'', attentes:'', eviter:'', soucis:'' };
   let enCours = false;
   let piecesJointes = [];   // contenus collés en attente d'envoi
+  let fichiersJoints = [];  // images / PDF joints en attente d'envoi
   let valeurAvant = '';     // pour détecter un collage massif sur mobile
   const SEUIL_CARS = 500, SEUIL_LIGNES = 8, SEUIL_DELTA = 100;   // au-delà, un collage devient une pièce jointe
   const estTactile = window.matchMedia('(pointer: coarse)').matches;
@@ -321,13 +328,23 @@
   const pEviter = document.getElementById('p-eviter');
   const pSoucis = document.getElementById('p-soucis');
   const zonePieces = document.getElementById('pieces');
+  const inputFichier = document.getElementById('input-fichier');
   const modalApercu = document.getElementById('modal-apercu');
   const apercuTexte = document.getElementById('apercu-texte');
 
   // ===== Stockage local (avec garde-fous) =====
   function lire(cle, defaut){ try{ const v = localStorage.getItem(cle); return v ? JSON.parse(v) : defaut; }catch(e){ return defaut; } }
   function ecrire(cle, val){ try{ localStorage.setItem(cle, JSON.stringify(val)); }catch(e){ console.warn('Stockage :', e); } }
-  function sauverConv(){ ecrire(K_CONV, conversations); ecrire(K_ACTIVE, convCourante ? convCourante.id : null); }
+  function alleger(conv){
+    return { id: conv.id, titre: conv.titre, modifie: conv.modifie, messages: conv.messages.map((m) => {
+      let content = m.content;
+      if (Array.isArray(content)){ const txt = content.filter((b) => b.type === 'text').map((b) => b.text).join('\n'); content = txt || '[fichier joint]'; }
+      let apercu = m.apercu;
+      if (apercu && apercu.fichiers){ apercu = Object.assign({}, apercu, { fichiers: apercu.fichiers.map((f) => ({ nom: f.nom, type: f.type })) }); }
+      return apercu ? { role: m.role, content: content, apercu: apercu } : { role: m.role, content: content };
+    }) };
+  }
+  function sauverConv(){ try { ecrire(K_CONV, conversations.map(alleger)); } catch (e) { console.warn('Sauvegarde :', e); } ecrire(K_ACTIVE, convCourante ? convCourante.id : null); }
 
   // ===== Traducteur Markdown → HTML =====
   function echapperHTML(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -446,28 +463,67 @@
   const ICONE_DOC = '<svg class="doc" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>';
   const ICONE_X = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
   function estLong(txt){ return txt.length >= SEUIL_CARS || txt.split('\n').length >= SEUIL_LIGNES; }
-  function majEnvoyer(){ envoyer.disabled = enCours || (champ.value.trim() === '' && piecesJointes.length === 0); }
+  function majEnvoyer(){ envoyer.disabled = enCours || (champ.value.trim() === '' && piecesJointes.length === 0 && fichiersJoints.length === 0); }
   function ajouterPiece(contenu){
     piecesJointes.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), nom: 'Texte collé', contenu: contenu, lignes: contenu.split('\n').length });
     rendrePieces(); majEnvoyer();
   }
   function retirerPiece(id){ piecesJointes = piecesJointes.filter(p => p.id !== id); rendrePieces(); majEnvoyer(); }
+  function retirerFichier(id){ fichiersJoints = fichiersJoints.filter(f => f.id !== id); rendrePieces(); majEnvoyer(); }
+  function ajouterFichier(file){
+    const estImage = file.type.startsWith('image/');
+    const estPdf = file.type === 'application/pdf';
+    if (!estImage && !estPdf){ ajouterMessage("Format non pris en charge. Joins une image (JPG, PNG…) ou un PDF.", 'ganndo'); return; }
+    const limite = estPdf ? 20 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (file.size > limite){ ajouterMessage("Ce fichier est trop volumineux (maximum " + (estPdf ? '20' : '5') + " Mo).", 'ganndo'); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataURL = reader.result;
+      const base64 = String(dataURL).split(',')[1] || '';
+      fichiersJoints.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), nom: file.name, type: estPdf ? 'pdf' : 'image', media_type: file.type, data: base64, dataURL: estImage ? dataURL : null, taille: file.size });
+      rendrePieces(); majEnvoyer();
+    };
+    reader.onerror = () => ajouterMessage("Je n'ai pas pu lire ce fichier. Réessaie.", 'ganndo');
+    reader.readAsDataURL(file);
+  }
+  function boutonSuppr(onclick){
+    const suppr = document.createElement('button'); suppr.type = 'button'; suppr.className = 'piece-suppr'; suppr.setAttribute('aria-label', 'Retirer');
+    suppr.innerHTML = ICONE_X;
+    suppr.addEventListener('click', (e) => { e.stopPropagation(); onclick(); });
+    return suppr;
+  }
   function rendrePieces(){
     zonePieces.innerHTML = '';
-    zonePieces.hidden = piecesJointes.length === 0;
+    zonePieces.hidden = (piecesJointes.length + fichiersJoints.length) === 0;
+    for (const f of fichiersJoints){
+      const carte = document.createElement('div'); carte.className = 'piece';
+      if (f.type === 'image' && f.dataURL){ const img = document.createElement('img'); img.className = 'miniature'; img.src = f.dataURL; carte.appendChild(img); }
+      else carte.innerHTML = ICONE_DOC;
+      const info = document.createElement('div'); info.className = 'info';
+      info.innerHTML = '<span class="nom">' + f.nom + '</span><span class="meta">' + (f.type === 'pdf' ? 'PDF' : 'Image') + ' · ' + Math.round(f.taille / 1024) + ' Ko</span>';
+      carte.appendChild(info); carte.appendChild(boutonSuppr(() => retirerFichier(f.id)));
+      zonePieces.appendChild(carte);
+    }
     for (const p of piecesJointes){
       const carte = document.createElement('div'); carte.className = 'piece';
       carte.innerHTML = ICONE_DOC + '<div class="info"><span class="nom">' + p.nom + '</span><span class="meta">' + p.lignes + ' lignes · ' + p.contenu.length + ' caractères</span></div>';
       carte.addEventListener('click', () => ouvrirApercu(p.contenu));
-      const suppr = document.createElement('button'); suppr.type = 'button'; suppr.className = 'piece-suppr'; suppr.setAttribute('aria-label', 'Retirer');
-      suppr.innerHTML = ICONE_X;
-      suppr.addEventListener('click', (e) => { e.stopPropagation(); retirerPiece(p.id); });
-      carte.appendChild(suppr); zonePieces.appendChild(carte);
+      carte.appendChild(boutonSuppr(() => retirerPiece(p.id)));
+      zonePieces.appendChild(carte);
     }
   }
   function construireApercuUser(apercu){
     const wrap = document.createElement('div'); wrap.className = 'apercu-user';
-    for (const p of apercu.pieces){
+    for (const f of (apercu.fichiers || [])){
+      const carte = document.createElement('div'); carte.className = 'piece-bulle';
+      if (f.type === 'image' && f.dataURL){ const img = document.createElement('img'); img.className = 'miniature'; img.src = f.dataURL; carte.appendChild(img); }
+      else carte.innerHTML = ICONE_DOC;
+      const info = document.createElement('div'); info.className = 'info';
+      info.innerHTML = '<span class="nom">' + echapperHTML(f.nom) + '</span><span class="meta">' + (f.type === 'pdf' ? 'PDF' : 'Image') + '</span>';
+      carte.appendChild(info);
+      wrap.appendChild(carte);
+    }
+    for (const p of (apercu.pieces || [])){
       const carte = document.createElement('div'); carte.className = 'piece-bulle';
       carte.innerHTML = ICONE_DOC + '<div class="info"><span class="nom">' + echapperHTML(p.nom) + '</span><span class="meta">' + p.lignes + ' lignes</span></div>';
       carte.addEventListener('click', () => ouvrirApercu(p.contenu));
@@ -634,14 +690,30 @@
   // ===== Envoi d'un message =====
   async function soumettre(){
     const texteTape = champ.value.trim();
-    if ((!texteTape && piecesJointes.length === 0) || enCours) return;
-    const contenuComplet = composerEnvoi(texteTape);
-    const apercu = piecesJointes.length ? { texte: texteTape, pieces: piecesJointes.map(p => ({ nom: p.nom, lignes: p.lignes, contenu: p.contenu })) } : null;
-    ajouterMessage(contenuComplet, 'moi', apercu);
-    convCourante.messages.push(apercu ? { role:'user', content: contenuComplet, apercu: apercu } : { role:'user', content: contenuComplet });
-    if (!convCourante.titre) convCourante.titre = (texteTape || (piecesJointes[0] && piecesJointes[0].nom) || 'Fichier collé').slice(0, 42);
+    if ((!texteTape && piecesJointes.length === 0 && fichiersJoints.length === 0) || enCours) return;
+    const aDesFichiers = fichiersJoints.length > 0;
+    let contenuEnvoi;
+    if (aDesFichiers){
+      contenuEnvoi = [];
+      for (const f of fichiersJoints){
+        if (f.type === 'image') contenuEnvoi.push({ type: 'image', source: { type: 'base64', media_type: f.media_type, data: f.data } });
+        else contenuEnvoi.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: f.data } });
+      }
+      for (const p of piecesJointes){ contenuEnvoi.push({ type: 'text', text: 'Contenu joint (' + p.nom + ') :\n"""\n' + p.contenu + '\n"""' }); }
+      contenuEnvoi.push({ type: 'text', text: texteTape || "Analyse le(s) fichier(s) joint(s) et donne-moi ton avis." });
+    } else {
+      contenuEnvoi = composerEnvoi(texteTape);
+    }
+    const apercu = (piecesJointes.length || fichiersJoints.length) ? {
+      texte: texteTape,
+      pieces: piecesJointes.map(p => ({ nom: p.nom, lignes: p.lignes, contenu: p.contenu })),
+      fichiers: fichiersJoints.map(f => ({ nom: f.nom, type: f.type, dataURL: f.dataURL }))
+    } : null;
+    ajouterMessage(typeof contenuEnvoi === 'string' ? contenuEnvoi : '', 'moi', apercu);
+    convCourante.messages.push(apercu ? { role:'user', content: contenuEnvoi, apercu: apercu } : { role:'user', content: contenuEnvoi });
+    if (!convCourante.titre) convCourante.titre = (texteTape || (fichiersJoints[0] && fichiersJoints[0].nom) || (piecesJointes[0] && piecesJointes[0].nom) || 'Fichier joint').slice(0, 42);
     enregistrerConv();
-    champ.value = ''; valeurAvant = ''; piecesJointes = []; rendrePieces(); ajusterHauteur(); enCours = true; envoyer.disabled = true; montrerEcriture();
+    champ.value = ''; valeurAvant = ''; piecesJointes = []; fichiersJoints = []; rendrePieces(); ajusterHauteur(); enCours = true; envoyer.disabled = true; montrerEcriture();
     try {
       const r = await fetch(FONCTION_URL, {
         method: 'POST',
@@ -690,6 +762,12 @@
   });
   envoyer.addEventListener('click', soumettre);
   micro.addEventListener('click', basculerDictee);
+  document.getElementById('btn-fichier').addEventListener('click', () => inputFichier.click());
+  inputFichier.addEventListener('change', (e) => {
+    const files = Array.from(e.target.files || []);
+    for (const f of files) ajouterFichier(f);
+    inputFichier.value = '';
+  });
 
   // ===== Branchements du menu et des paramètres =====
   document.getElementById('btn-menu').addEventListener('click', ouvrirDrawer);
