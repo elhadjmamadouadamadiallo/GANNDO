@@ -5,7 +5,7 @@
 //  ressources externes : il ne met en cache que les fichiers de l'app.
 // ===================================================================
 
-const CACHE = 'ganndo-v8';
+const CACHE = 'ganndo-v9';
 const FICHIERS = [
   './',
   './index.html',
