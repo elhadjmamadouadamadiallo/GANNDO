@@ -137,6 +137,9 @@
   #champ::placeholder{color:#7e879e;} #champ:focus{border-color:var(--or);}
   .rond{flex:none; width:44px; height:44px; border-radius:50%; display:grid; place-items:center; cursor:pointer; border:none; background:none;}
   #micro{border:1px solid var(--or);} #micro svg{stroke:var(--or);}
+  #micro.actif{border-color:#e5533c; background:rgba(229,83,60,.15); animation:pulse 1.3s infinite;}
+  #micro.actif svg{stroke:#e5533c;}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(229,83,60,.45);} 50%{box-shadow:0 0 0 7px rgba(229,83,60,0);}}
   #envoyer{background:linear-gradient(180deg,var(--or-clair),var(--or-fonce));}
   #envoyer svg{stroke:var(--user-txt);} #envoyer:disabled{opacity:.4;}
 
@@ -298,6 +301,9 @@
   let valeurAvant = '';     // pour détecter un collage massif sur mobile
   const SEUIL_CARS = 500, SEUIL_LIGNES = 8, SEUIL_DELTA = 100;   // au-delà, un collage devient une pièce jointe
   const estTactile = window.matchMedia('(pointer: coarse)').matches;
+  const RecoAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const synthOK = 'speechSynthesis' in window;
+  let reco = null, enEcoute = false, texteAvantDictee = '', voixFr = null, boutonEnLecture = null;
 
   // ===== Éléments =====
   const chat = document.getElementById('chat');
@@ -386,6 +392,7 @@
 
   // ===== Affichage des bulles =====
   const ICONE_COPIER = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
+  const ICONE_SON = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg>';
   async function copierTexte(texte, bouton){
     try {
       if (navigator.clipboard && navigator.clipboard.writeText){ await navigator.clipboard.writeText(texte); }
@@ -411,7 +418,14 @@
       const copier = document.createElement('button'); copier.type = 'button'; copier.className = 'btn-copier';
       copier.innerHTML = ICONE_COPIER + '<span>Copier</span>';
       copier.addEventListener('click', () => copierTexte(texte, copier));
-      actions.appendChild(copier); bloc.appendChild(actions);
+      actions.appendChild(copier);
+      if (synthOK){
+        const ecouter = document.createElement('button'); ecouter.type = 'button'; ecouter.className = 'btn-copier';
+        ecouter.innerHTML = ICONE_SON + '<span>Écouter</span>';
+        ecouter.addEventListener('click', () => lireReponse(texte, ecouter));
+        actions.appendChild(ecouter);
+      }
+      bloc.appendChild(actions);
     }
     chat.appendChild(bloc);
     if (qui === 'ganndo') alignerHaut(bloc); else descendre();
@@ -481,6 +495,7 @@
 
   // ===== Conversations =====
   function afficher(){
+    if (synthOK){ speechSynthesis.cancel(); remettreLecture(); }
     chat.innerHTML = '';
     if (!convCourante.messages.length) ajouterMessage(MSG_ACCUEIL, 'ganndo');
     else for (const m of convCourante.messages) ajouterMessage(m.content, m.role === 'user' ? 'moi' : 'ganndo', m.apercu);
@@ -542,6 +557,72 @@
     ecrire(K_PROFIL, profil); fermerParams();
   }
 
+  // ===== Voix : dictée (reconnaissance) et lecture (synthèse) =====
+  function majMicro(){ micro.classList.toggle('actif', enEcoute); micro.setAttribute('aria-label', enEcoute ? 'Arrêter la dictée' : 'Dicter'); }
+  function basculerDictee(){
+    if (!RecoAPI){ ajouterMessage("La dictée vocale n'est pas disponible sur ce navigateur. Sur Android, utilise Chrome.", 'ganndo'); return; }
+    if (enEcoute){ arreterDictee(); return; }
+    demarrerDictee();
+  }
+  function demarrerDictee(){
+    try { reco = new RecoAPI(); } catch (e) { return; }
+    reco.lang = 'fr-FR'; reco.continuous = true; reco.interimResults = true;
+    texteAvantDictee = champ.value ? champ.value.replace(/\s+$/, '') + ' ' : '';
+    let finales = '';
+    reco.onresult = (e) => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++){
+        const seg = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finales += seg; else interim += seg;
+      }
+      champ.value = texteAvantDictee + finales + interim;
+      valeurAvant = champ.value;
+      ajusterHauteur(); majEnvoyer();
+    };
+    reco.onerror = (e) => {
+      enEcoute = false; majMicro();
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed'){
+        ajouterMessage("Je n'ai pas accès au micro. Autorise le microphone pour ce site, puis réessaie.", 'ganndo');
+      }
+    };
+    reco.onend = () => { enEcoute = false; majMicro(); };
+    try { reco.start(); enEcoute = true; majMicro(); } catch (err) { console.warn('Dictée :', err); }
+  }
+  function arreterDictee(){ if (reco){ try { reco.stop(); } catch (e) {} } enEcoute = false; majMicro(); }
+
+  function chargerVoix(){ if (!synthOK) return; const v = speechSynthesis.getVoices(); voixFr = v.find(x => /^fr/i.test(x.lang)) || voixFr; }
+  function texteVocal(md){
+    let t = md;
+    t = t.replace(/```[\s\S]*?```/g, '. ');
+    t = t.replace(/`([^`]+)`/g, '$1');
+    t = t.replace(/\*\*([^*]+)\*\*/g, '$1');
+    t = t.replace(/\*([^*]+)\*/g, '$1');
+    t = t.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+    t = t.replace(/^\s*[-*+]\s+/gm, '');
+    t = t.replace(/^\s*\d+[.)]\s+/gm, '');
+    t = t.replace(/^\s*#{1,6}\s+/gm, '');
+    t = t.replace(/^\s*>\s?/gm, '');
+    t = t.replace(/^[\s:|-]{3,}$/gm, '');
+    t = t.replace(/\|/g, ' ');
+    t = t.replace(/[#*_`>]/g, '');
+    t = t.replace(/\n{2,}/g, '. ');
+    return t.replace(/[ \t]{2,}/g, ' ').trim();
+  }
+  function remettreLecture(){
+    if (boutonEnLecture){ boutonEnLecture.classList.remove('ok'); const s = boutonEnLecture.querySelector('span'); if (s) s.textContent = 'Écouter'; boutonEnLecture = null; }
+  }
+  function lireReponse(texte, bouton){
+    if (!synthOK) return;
+    if (bouton === boutonEnLecture){ speechSynthesis.cancel(); remettreLecture(); return; }
+    speechSynthesis.cancel(); remettreLecture();
+    const u = new SpeechSynthesisUtterance(texteVocal(texte));
+    u.lang = 'fr-FR'; if (voixFr) u.voice = voixFr; u.rate = 1; u.pitch = 1;
+    u.onend = remettreLecture; u.onerror = remettreLecture;
+    boutonEnLecture = bouton; bouton.classList.add('ok');
+    const s = bouton.querySelector('span'); if (s) s.textContent = 'Arrêter';
+    speechSynthesis.speak(u);
+  }
+
   // ===== Envoi d'un message =====
   async function soumettre(){
     const texteTape = champ.value.trim();
@@ -600,7 +681,7 @@
     if (!estTactile && e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); soumettre(); }
   });
   envoyer.addEventListener('click', soumettre);
-  micro.addEventListener('click', () => ajouterMessage("La dictée vocale sera activée à l'étape consacrée à la voix.", 'ganndo'));
+  micro.addEventListener('click', basculerDictee);
 
   // ===== Branchements du menu et des paramètres =====
   document.getElementById('btn-menu').addEventListener('click', ouvrirDrawer);
@@ -618,6 +699,9 @@
   profil = Object.assign({ description:'', attentes:'', eviter:'', soucis:'' }, lire(K_PROFIL, {}));
   convCourante = { id: Date.now().toString(), titre:'', messages:[], modifie: Date.now() };
   afficher(); rendreListe();
+
+  // ===== Voix : préchargement des voix de synthèse =====
+  if (synthOK){ chargerVoix(); try { speechSynthesis.onvoiceschanged = chargerVoix; } catch (e) {} }
 
   // ===== PWA : service worker =====
   if ('serviceWorker' in navigator){
